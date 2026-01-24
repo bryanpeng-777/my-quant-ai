@@ -71,7 +71,7 @@ def generate_ai_report(data, symbol="NVDA"):
     """
     
     response = client.models.generate_content(
-        model="gemini-2.0-flash", # 2026年推荐使用的高性价比稳定版本
+        model="gemini-1.5-flash", # 2026年推荐使用的高性价比稳定版本
         contents=prompt
     )
     return response.text
