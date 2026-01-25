@@ -2,8 +2,8 @@ name: Stock Sell Signal Pipeline
 
 on:
   schedule:
-    # 这里的 cron 是 UTC 时间。北京时间 18:00 = UTC 10:00
-    - cron: '0 10 * * *'
+    # 测试：每5分钟执行一次
+    - cron: '*/5 * * * *'
   workflow_dispatch: # 这是一个"手动触发"开关，方便你随时测试
 
 jobs:
