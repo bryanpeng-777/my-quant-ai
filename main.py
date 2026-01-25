@@ -1,6 +1,6 @@
 import os
 import yfinance as yf
-from google import genai
+from openai import OpenAI
 import smtplib
 from email.message import EmailMessage
 from datetime import datetime
@@ -8,7 +8,7 @@ from datetime import datetime
 # ==========================================
 # 核心配置：从 GitHub Secrets 读取环境变量
 # ==========================================
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
 SENDER_EMAIL = os.environ.get("EMAIL_SENDER")
 SENDER_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 RECEIVER_EMAIL = os.environ.get("EMAIL_RECEIVER")
@@ -45,9 +45,12 @@ def get_stock_analysis(symbol="NVDA"):
 
 def generate_ai_report(data, symbol="NVDA"):
     """
-    将量化结果喂给 Gemini 3，让它生成专业投研结论
+    将量化结果喂给 DeepSeek，让它生成专业投研结论
     """
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    client = OpenAI(
+        api_key=DEEPSEEK_API_KEY,
+        base_url="https://api.deepseek.com"
+    )
     
     prompt = f"""
     你是资深价值投资分析师，擅长量化趋势分析。
@@ -70,11 +73,14 @@ def generate_ai_report(data, symbol="NVDA"):
     3. 最后给出一段温馨的风险提示。
     """
     
-    response = client.models.generate_content(
-        model="gemini-2.0-flash", # 2026年推荐使用的高性价比稳定版本
-        contents=prompt
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7
     )
-    return response.text
+    return response.choices[0].message.content
 
 def send_email(subject, body):
     """
