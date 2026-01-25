@@ -123,6 +123,13 @@ def get_stock_analysis(symbol="NVDA"):
     if not pd.isna(latest['MACD_DIF']) and not pd.isna(latest['MACD_DEA']):
         rule_9 = latest['MACD_DIF'] > latest['MACD_DEA']
     
+    # 检验项10: 最近一周的收盘价是否是至少10周的最高价
+    rule_10 = False
+    if len(df) >= 10:
+        recent_10_weeks = df.iloc[-10:]['Close']
+        max_price_10_weeks = recent_10_weeks.max()
+        rule_10 = curr_price >= max_price_10_weeks
+    
     return {
         "price": round(curr_price, 2),
         "ma10": round(ma10, 2) if not pd.isna(ma10) else None,
@@ -142,6 +149,7 @@ def get_stock_analysis(symbol="NVDA"):
         "rule_7": rule_7,  # 当前这一周的收盘价是否比上一周的收盘价高出5%个点
         "rule_8": rule_8,  # 当前这一周的成交量是否比上一周高
         "rule_9": rule_9,  # MACD线是否DIF线在DEA线之上
+        "rule_10": rule_10,  # 最近一周的收盘价是否是至少10周的最高价
     }
 
 def generate_ai_report(stocks_data):
@@ -160,9 +168,10 @@ def generate_ai_report(stocks_data):
         # 计算达成规则的数量
         rules_passed = sum([
             data['rule_1'], data['rule_2'], data['rule_3'], data['rule_4'],
-            data['rule_5'], data['rule_6'], data['rule_7'], data['rule_8'], data['rule_9']
+            data['rule_5'], data['rule_6'], data['rule_7'], data['rule_8'], 
+            data['rule_9'], data['rule_10']
         ])
-        total_rules = 9
+        total_rules = 10
         
         stock_info = f"""
     ==========================================
@@ -189,6 +198,7 @@ def generate_ai_report(stocks_data):
     7. 当前这一周的收盘价是否比上一周的收盘价高出5%个点: {"✅ 达成" if data['rule_7'] else "❌ 未达成"}
     8. 当前这一周的成交量是否比上一周高: {"✅ 达成" if data['rule_8'] else "❌ 未达成"}
     9. MACD线是否DIF线在DEA线之上: {"✅ 达成" if data['rule_9'] else "❌ 未达成"}
+    10. 最近一周的收盘价是否是至少10周的最高价: {"✅ 达成" if data['rule_10'] else "❌ 未达成"}
     
     达成情况: {rules_passed}/{total_rules} 项检验通过
     综合结论: {"建议买入" if rules_passed >= 6 else "持续观望"}
@@ -208,7 +218,7 @@ def generate_ai_report(stocks_data):
     1. 标题为【Hello！Analysis Your Business】
     2. 对每一只参与分析的个股分别进行如下操作：
        a. 首先列出当前这几个关键值的数值，方便我去对比数据的正确性
-       b. 我希望检验的项包括：
+       b. 我希望检验的决定是否买入一只股票的检查清单项包括：
           - 10周线是否位于20周线之上
           - 当前股价是否处于20周线之上
           - 当前股价是否处于30周线之上
@@ -218,6 +228,7 @@ def generate_ai_report(stocks_data):
           - 当前这一周的收盘价是否比上一周的收盘价高出5%个点
           - 当前这一周的成交量是否比上一周高
           - MACD线是否DIF线在DEA线之上
+          - 最近一周的收盘价是否是至少10周的最高价
        c. 针对上述所有项输出为一个清单，清单项为每一项校验是否通过，例如：
           10周线是否位于20周线之上：✅
           当前股价是否处于20周线之上：❌
@@ -292,9 +303,10 @@ def main():
                 stocks_data[symbol] = data
                 rules_passed = sum([
                     data['rule_1'], data['rule_2'], data['rule_3'], data['rule_4'],
-                    data['rule_5'], data['rule_6'], data['rule_7'], data['rule_8'], data['rule_9']
+                    data['rule_5'], data['rule_6'], data['rule_7'], data['rule_8'], 
+                    data['rule_9'], data['rule_10']
                 ])
-                print(f"[{datetime.now()}] {symbol} 分析完成，达成规则: {rules_passed}/9")
+                print(f"[{datetime.now()}] {symbol} 分析完成，达成规则: {rules_passed}/10")
             except Exception as e:
                 error_msg = str(e)
                 print(f"[{datetime.now()}] ⚠️  {symbol} 分析失败: {error_msg}")
