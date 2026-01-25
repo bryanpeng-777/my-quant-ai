@@ -15,6 +15,17 @@ SENDER_EMAIL = os.environ.get("EMAIL_SENDER")
 SENDER_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 RECEIVER_EMAIL = os.environ.get("EMAIL_RECEIVER")
 
+# ==========================================
+# 股票代码配置：在此添加要分析的股票代码
+# ==========================================
+STOCK_SYMBOLS = [
+    "NVDA",  # 英伟达
+    # 在此添加更多股票代码，例如：
+    "AAPL",  # 苹果
+    # "MSFT",  # 微软
+    "TSLA",  # 特斯拉
+]
+
 def calculate_macd(df, fast=12, slow=26, signal=9):
     """
     计算MACD指标
@@ -133,24 +144,28 @@ def get_stock_analysis(symbol="NVDA"):
         "rule_9": rule_9,  # MACD线是否DIF线在DEA线之上
     }
 
-def generate_ai_report(data, symbol="NVDA"):
+def generate_ai_report(stocks_data):
     """
-    将量化结果喂给 DeepSeek，让它生成专业投研结论
+    将多只股票的量化结果喂给 DeepSeek，让它生成专业投研结论
+    stocks_data: 字典，格式为 {symbol: data_dict, ...}
     """
     client = OpenAI(
         api_key=DEEPSEEK_API_KEY,
         base_url="https://api.deepseek.com"
     )
     
-    # 计算达成规则的数量
-    rules_passed = sum([
-        data['rule_1'], data['rule_2'], data['rule_3'], data['rule_4'],
-        data['rule_5'], data['rule_6'], data['rule_7'], data['rule_8'], data['rule_9']
-    ])
-    total_rules = 9
-    
-    prompt = f"""
-    你是资深价值投资分析师，擅长量化趋势分析。
+    # 构建所有股票的分析数据字符串
+    stocks_analysis = []
+    for symbol, data in stocks_data.items():
+        # 计算达成规则的数量
+        rules_passed = sum([
+            data['rule_1'], data['rule_2'], data['rule_3'], data['rule_4'],
+            data['rule_5'], data['rule_6'], data['rule_7'], data['rule_8'], data['rule_9']
+        ])
+        total_rules = 9
+        
+        stock_info = f"""
+    ==========================================
     标的: {symbol}
     当前价格: ${data['price']}
     
@@ -176,28 +191,37 @@ def generate_ai_report(data, symbol="NVDA"):
     9. MACD线是否DIF线在DEA线之上: {"✅ 达成" if data['rule_9'] else "❌ 未达成"}
     
     达成情况: {rules_passed}/{total_rules} 项检验通过
-    
     综合结论: {"建议买入" if rules_passed >= 6 else "持续观望"}
+    ==========================================
+        """
+        stocks_analysis.append(stock_info)
+    
+    all_stocks_text = "\n".join(stocks_analysis)
+    
+    prompt = f"""
+    你是资深价值投资分析师，擅长量化趋势分析。
+    
+    以下是需要分析的股票列表（共 {len(stocks_data)} 只）：
+    {all_stocks_text}
     
     请根据以上数据写一份专业的邮件报告。
-    1. 对每一个参与分析的个股输出分别进行如下操作
-    2. 标题为【Hello！Analysis Your Business】
-    3. 正文需要首先列出当前这几个关键值的数值，方便我去对比数据的正确性
-    4. 我希望检验的项包括
-	- 10周线是否位于20周线之上
-	- 当前股价是否处于20周线之上
-	- 当前股价是否处于处于30周线之上
-	- 30周线目前的趋势是向上吗
-	- 个股横盘是否超过6周（纵向波动小于20个点）
-	- 横盘期间的下跌成交量是否有缩量的趋势
-	- 当前这一周的收盘价是否比上一周的收盘价高出5%个点
-	- 当前这一周的成交量是否比上一周高
-	- MACD线是否DIF线在DEA线之上
-    5. 针对第4点中提到的所有项输出为一个清单，清单项为每一项校验是否通过，比如
-	10周线是否位于20周线之上：✅
-	当前股价是否处于20周线之上：❌
-
-
+    1. 标题为【Hello！Analysis Your Business】
+    2. 对每一只参与分析的个股分别进行如下操作：
+       a. 首先列出当前这几个关键值的数值，方便我去对比数据的正确性
+       b. 我希望检验的项包括：
+          - 10周线是否位于20周线之上
+          - 当前股价是否处于20周线之上
+          - 当前股价是否处于30周线之上
+          - 30周线目前的趋势是向上吗
+          - 个股横盘是否超过6周（纵向波动小于20个点）
+          - 横盘期间的下跌成交量是否有缩量的趋势
+          - 当前这一周的收盘价是否比上一周的收盘价高出5%个点
+          - 当前这一周的成交量是否比上一周高
+          - MACD线是否DIF线在DEA线之上
+       c. 针对上述所有项输出为一个清单，清单项为每一项校验是否通过，例如：
+          10周线是否位于20周线之上：✅
+          当前股价是否处于20周线之上：❌
+    3. 最后给出所有股票的综合对比分析和投资建议
     """
     
     response = client.chat.completions.create(
@@ -249,26 +273,56 @@ def send_email(subject, body):
         raise Exception(f"发送邮件时出错: {str(e)}")
 
 def main():
-    print(f"[{datetime.now()}] 启动 NVDA 量化流水线...")
+    print(f"[{datetime.now()}] 启动多股票量化流水线...")
+    print(f"[{datetime.now()}] 待分析股票: {', '.join(STOCK_SYMBOLS)}")
+    
+    if not STOCK_SYMBOLS:
+        print(f"[{datetime.now()}] ⚠️  警告: STOCK_SYMBOLS 列表为空，请在配置中添加股票代码")
+        return
     
     try:
-        # 1. 抓取与分析
-        data = get_stock_analysis("NVDA")
+        # 1. 循环抓取与分析所有股票
+        stocks_data = {}
+        failed_stocks = []
         
-        # 2. 调用 AI 决策
-        report_content = generate_ai_report(data)
+        for symbol in STOCK_SYMBOLS:
+            try:
+                print(f"[{datetime.now()}] 正在分析 {symbol}...")
+                data = get_stock_analysis(symbol)
+                stocks_data[symbol] = data
+                rules_passed = sum([
+                    data['rule_1'], data['rule_2'], data['rule_3'], data['rule_4'],
+                    data['rule_5'], data['rule_6'], data['rule_7'], data['rule_8'], data['rule_9']
+                ])
+                print(f"[{datetime.now()}] {symbol} 分析完成，达成规则: {rules_passed}/9")
+            except Exception as e:
+                error_msg = str(e)
+                print(f"[{datetime.now()}] ⚠️  {symbol} 分析失败: {error_msg}")
+                failed_stocks.append(symbol)
+        
+        if not stocks_data:
+            print(f"[{datetime.now()}] ❌ 所有股票分析均失败，无法生成报告")
+            return
+        
+        if failed_stocks:
+            print(f"[{datetime.now()}] ⚠️  以下股票分析失败: {', '.join(failed_stocks)}")
+        
+        # 2. 调用 AI 决策生成综合报告
+        print(f"[{datetime.now()}] 正在生成 AI 分析报告（共 {len(stocks_data)} 只股票）...")
+        report_content = generate_ai_report(stocks_data)
         
         # 3. 提取标题并发送
         # 简单取 AI 返回的第一行作为标题
         lines = report_content.split('\n')
-        subject = f"AI 投研周报: {lines[0]}" if lines else "NVDA 每日量化报告"
+        subject = f"AI 投研周报: {lines[0]}" if lines else f"多股票量化报告 ({len(stocks_data)} 只)"
         
         send_email(subject, report_content)
-        print(f"[{datetime.now()}] 流水线执行成功，报告已推送至邮箱。")
+        print(f"[{datetime.now()}] ✅ 流水线执行成功，报告已推送至邮箱。")
+        print(f"[{datetime.now()}] 成功分析股票数: {len(stocks_data)}/{len(STOCK_SYMBOLS)}")
         
     except Exception as e:
         error_msg = str(e)
-        print(f"[{datetime.now()}] 流水线执行异常: {error_msg}")
+        print(f"[{datetime.now()}] ❌ 流水线执行异常: {error_msg}")
         
         # 提供更友好的错误提示
         if "QQ邮箱认证失败" in error_msg or "535" in error_msg or "authentication failed" in error_msg.lower():
