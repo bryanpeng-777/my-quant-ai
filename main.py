@@ -68,13 +68,14 @@ def generate_ai_report(data, symbol="NVDA"):
     综合结论: {"建议买入" if (data['rule_1'] and data['rule_2']) else "持续观望"}
     
     请根据以上数据写一份专业的邮件报告。
-    1. 标题必须包含【✅建议买入】或【❌持续观望】。
-    2. 正文需简述技术面现状，解释为何符合或不符合规则。
-    3. 最后给出一段温馨的风险提示。
+1. 标题必须包含【✅建议买入】或【❌持续观望】。
+2. 正文需要首先列出当前这几个关键值的数值，方便我去对比数据的正确性
+3. 最后能以表格的形式给出输出
+
     """
     
     response = client.chat.completions.create(
-        model="deepseek-chat",
+        model="deepseek-reasoner",
         messages=[
             {"role": "user", "content": prompt}
         ],
