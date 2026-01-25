@@ -4,7 +4,6 @@ on:
   schedule:
     # 测试：每5分钟执行一次
     - cron: '*/30 * * * *'
-  workflow_dispatch: # 这是一个"手动触发"开关，方便你随时测试
 
 jobs:
   check_sell_signal:
