@@ -1,7 +1,11 @@
 name: Nasdaq Top 100 Stock Scanner
 
 on:
-  workflow_dispatch: # 这是一个"手动触发"开关，方便你随时测试
+  workflow_dispatch: # 手动触发开关，方便随时测试
+  push:
+    branches:
+      - main
+      - master
 
 jobs:
   scan_nasdaq100:
