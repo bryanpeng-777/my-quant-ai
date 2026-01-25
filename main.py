@@ -84,18 +84,42 @@ def generate_ai_report(data, symbol="NVDA"):
 
 def send_email(subject, body):
     """
-    通过 SMTP 发送邮件
+    通过 SMTP 发送邮件（QQ邮箱）
+    需要使用QQ邮箱的授权码，不是QQ密码
     """
+    if not all([SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_EMAIL]):
+        raise ValueError("邮件配置不完整，请检查环境变量：EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER")
+    
     msg = EmailMessage()
     msg.set_content(body)
     msg['Subject'] = subject
     msg['From'] = SENDER_EMAIL
     msg['To'] = RECEIVER_EMAIL
 
-    # 这里以 Gmail 为例，如果是其他邮箱，请修改服务器地址
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-        smtp.login(SENDER_EMAIL, SENDER_PASSWORD)
-        smtp.send_message(msg)
+    try:
+        # QQ邮箱 SMTP 配置
+        with smtplib.SMTP_SSL('smtp.qq.com', 465) as smtp:
+            smtp.login(SENDER_EMAIL, SENDER_PASSWORD)
+            smtp.send_message(msg)
+    except smtplib.SMTPAuthenticationError as e:
+        error_msg = str(e)
+        if "535" in error_msg or "authentication failed" in error_msg.lower() or "认证失败" in error_msg:
+            raise Exception(
+                "QQ邮箱认证失败！\n"
+                "解决方案：\n"
+                "1. 登录QQ邮箱网页版：https://mail.qq.com\n"
+                "2. 进入【设置】→【账户】\n"
+                "3. 找到【POP3/IMAP/SMTP/Exchange/CardDAV/CalDAV服务】\n"
+                "4. 开启【POP3/SMTP服务】或【IMAP/SMTP服务】\n"
+                "5. 点击【生成授权码】，按照提示发送短信验证\n"
+                "6. 将生成的授权码（16位字符）设置为 EMAIL_PASSWORD\n"
+                "⚠️  注意：必须使用授权码，不能使用QQ密码！\n"
+                f"原始错误: {error_msg}"
+            )
+        else:
+            raise Exception(f"SMTP 认证错误: {error_msg}")
+    except Exception as e:
+        raise Exception(f"发送邮件时出错: {str(e)}")
 
 def main():
     print(f"[{datetime.now()}] 启动 NVDA 量化流水线...")
@@ -116,7 +140,17 @@ def main():
         print(f"[{datetime.now()}] 流水线执行成功，报告已推送至邮箱。")
         
     except Exception as e:
-        print(f"[{datetime.now()}] 流水线执行异常: {str(e)}")
+        error_msg = str(e)
+        print(f"[{datetime.now()}] 流水线执行异常: {error_msg}")
+        
+        # 提供更友好的错误提示
+        if "QQ邮箱认证失败" in error_msg or "535" in error_msg or "authentication failed" in error_msg.lower():
+            print(f"[{datetime.now()}] ⚠️  邮件发送失败，但分析报告已生成。")
+            print(f"[{datetime.now()}] 请按照上述提示配置 QQ邮箱授权码。")
+        elif "API" in error_msg or "api_key" in error_msg.lower() or "DEEPSEEK" in error_msg:
+            print(f"[{datetime.now()}] 提示: 请检查 DEEPSEEK_API_KEY 环境变量是否正确设置")
+        elif "邮件配置不完整" in error_msg:
+            print(f"[{datetime.now()}] 提示: 请检查邮箱相关环境变量（EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER）")
 
 if __name__ == "__main__":
     main()
