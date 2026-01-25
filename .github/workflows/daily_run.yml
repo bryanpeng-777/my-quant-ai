@@ -1,10 +1,7 @@
 name: Stock Analysis Pipeline
 
 on:
-  schedule:
-    # 这里的 cron 是 UTC 时间。北京时间 12:20 = UTC 4:20
-    - cron: '20 4 * * *'
-  workflow_dispatch: # 这是一个“手动触发”开关，方便你随时测试
+  workflow_dispatch: # 这是一个"手动触发"开关，方便你随时测试
 
 jobs:
   build_and_run:
