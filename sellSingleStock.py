@@ -1,19 +1,17 @@
-import os
+"""
+股票卖出信号检测脚本
+基于MACD死亡交叉分析，检测股票是否应该卖出
+"""
 import yfinance as yf
-from openai import OpenAI
-import smtplib
-from email.message import EmailMessage
 from datetime import datetime
 import pandas as pd
-import numpy as np
-
-# ==========================================
-# 核心配置：从 GitHub Secrets 读取环境变量
-# ==========================================
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
-SENDER_EMAIL = os.environ.get("EMAIL_SENDER")
-SENDER_PASSWORD = os.environ.get("EMAIL_PASSWORD")
-RECEIVER_EMAIL = os.environ.get("EMAIL_RECEIVER")
+from stock_utils import (
+    calculate_macd,
+    get_stock_data,
+    call_deepseek_api,
+    send_email,
+    handle_pipeline_error
+)
 
 # ==========================================
 # 股票代码配置：在此添加要分析的股票代码
@@ -26,21 +24,15 @@ STOCK_SYMBOLS = [
     "TSLA",  # 特斯拉
 ]
 
-def calculate_macd(df, fast=12, slow=26, signal=9):
-    """
-    计算MACD指标
-    """
-    exp1 = df['Close'].ewm(span=fast, adjust=False).mean()
-    exp2 = df['Close'].ewm(span=slow, adjust=False).mean()
-    df['MACD_DIF'] = exp1 - exp2
-    df['MACD_DEA'] = df['MACD_DIF'].ewm(span=signal, adjust=False).mean()
-    df['MACD'] = 2 * (df['MACD_DIF'] - df['MACD_DEA'])
-    return df
-
 def find_last_death_cross_week(df):
     """
     找到最近一次MACD线DIF线向下穿过DEA线的那一周
-    返回该周的索引和最低价，如果没有找到则返回None
+    
+    Args:
+        df: 包含 MACD_DIF 和 MACD_DEA 列的 DataFrame
+    
+    Returns:
+        (index, lowest_price): 死亡交叉周的索引和最低价，未找到返回 (None, None)
     """
     if len(df) < 2:
         return None, None
@@ -66,16 +58,19 @@ def find_last_death_cross_week(df):
     
     return None, None
 
-def check_sell_signal(symbol="NVDA"):
+def check_sell_signal(symbol):
     """
     检查是否应该卖出股票
-    返回: (should_sell, analysis_data)
-    """
-    ticker = yf.Ticker(symbol)
-    # 抓取 2 年周线数据确保有足够的历史数据
-    df = ticker.history(period="2y", interval="1wk")
     
-    if len(df) < 2:
+    Args:
+        symbol: 股票代码
+    
+    Returns:
+        (should_sell, analysis_data): 是否应该卖出和分析数据
+    """
+    df = get_stock_data(symbol)
+    
+    if df is None or len(df) < 2:
         return False, {
             "error": "数据不足，无法进行分析",
             "price": None,
@@ -88,6 +83,7 @@ def check_sell_signal(symbol="NVDA"):
     # 获取当前价格（实时价格或最新收盘价）
     try:
         # 尝试获取实时价格
+        ticker = yf.Ticker(symbol)
         info = ticker.info
         current_price = info.get('regularMarketPrice') or info.get('currentPrice')
         if current_price is None:
@@ -128,39 +124,32 @@ def check_sell_signal(symbol="NVDA"):
 def generate_sell_report(stocks_data):
     """
     将多只股票的卖出分析结果喂给 DeepSeek，让它生成专业报告
-    stocks_data: 字典，格式为 {symbol: data_dict, ...}
-    """
-    client = OpenAI(
-        api_key=DEEPSEEK_API_KEY,
-        base_url="https://api.deepseek.com"
-    )
     
+    Args:
+        stocks_data: 字典，格式为 {symbol: data_dict, ...}
+    
+    Returns:
+        AI 生成的报告内容
+    """
     # 构建所有股票的分析数据字符串
     stocks_analysis = []
-    sell_stocks = []
-    hold_stocks = []
     
     for symbol, data in stocks_data.items():
-        if data.get('should_sell', False):
-            sell_stocks.append(symbol)
-        else:
-            hold_stocks.append(symbol)
-        
         stock_info = f"""
-    ==========================================
-    标的: {symbol}
-    当前价格: ${data.get('price', 'N/A')}
-    
-    死亡交叉分析:
-    - 是否找到死亡交叉: {"✅ 是" if data.get('death_cross_found', False) else "❌ 否"}
-    - 死亡交叉周日期: {data.get('death_cross_date', 'N/A')}
-    - 死亡交叉周最低价: ${data.get('death_cross_week_low', 'N/A')}
-    - 价格跌幅: {data.get('price_drop_pct', 'N/A')}%
-    
-    卖出信号: {"🔴 建议卖出" if data.get('should_sell', False) else "🟢 继续持有"}
-    原因: {data.get('reason', 'N/A')}
-    ==========================================
-        """
+==========================================
+标的: {symbol}
+当前价格: ${data.get('price', 'N/A')}
+
+死亡交叉分析:
+- 是否找到死亡交叉: {"✅ 是" if data.get('death_cross_found', False) else "❌ 否"}
+- 死亡交叉周日期: {data.get('death_cross_date', 'N/A')}
+- 死亡交叉周最低价: ${data.get('death_cross_week_low', 'N/A')}
+- 价格跌幅: {data.get('price_drop_pct', 'N/A')}%
+
+卖出信号: {"🔴 建议卖出" if data.get('should_sell', False) else "🟢 继续持有"}
+原因: {data.get('reason', 'N/A')}
+==========================================
+"""
         stocks_analysis.append(stock_info)
     
     all_stocks_text = "\n".join(stocks_analysis)
@@ -183,53 +172,7 @@ def generate_sell_report(stocks_data):
     4. 特别标注需要立即卖出的股票（如果有）
     """
     
-    response = client.chat.completions.create(
-        model="deepseek-reasoner",
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.7
-    )
-    return response.choices[0].message.content
-
-def send_email(subject, body):
-    """
-    通过 SMTP 发送邮件（QQ邮箱）
-    需要使用QQ邮箱的授权码，不是QQ密码
-    """
-    if not all([SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_EMAIL]):
-        raise ValueError("邮件配置不完整，请检查环境变量：EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER")
-    
-    msg = EmailMessage()
-    msg.set_content(body)
-    msg['Subject'] = subject
-    msg['From'] = SENDER_EMAIL
-    msg['To'] = RECEIVER_EMAIL
-
-    try:
-        # QQ邮箱 SMTP 配置
-        with smtplib.SMTP_SSL('smtp.qq.com', 465) as smtp:
-            smtp.login(SENDER_EMAIL, SENDER_PASSWORD)
-            smtp.send_message(msg)
-    except smtplib.SMTPAuthenticationError as e:
-        error_msg = str(e)
-        if "535" in error_msg or "authentication failed" in error_msg.lower() or "认证失败" in error_msg:
-            raise Exception(
-                "QQ邮箱认证失败！\n"
-                "解决方案：\n"
-                "1. 登录QQ邮箱网页版：https://mail.qq.com\n"
-                "2. 进入【设置】→【账户】\n"
-                "3. 找到【POP3/IMAP/SMTP/Exchange/CardDAV/CalDAV服务】\n"
-                "4. 开启【POP3/SMTP服务】或【IMAP/SMTP服务】\n"
-                "5. 点击【生成授权码】，按照提示发送短信验证\n"
-                "6. 将生成的授权码（16位字符）设置为 EMAIL_PASSWORD\n"
-                "⚠️  注意：必须使用授权码，不能使用QQ密码！\n"
-                f"原始错误: {error_msg}"
-            )
-        else:
-            raise Exception(f"SMTP 认证错误: {error_msg}")
-    except Exception as e:
-        raise Exception(f"发送邮件时出错: {str(e)}")
+    return call_deepseek_api(prompt)
 
 def main():
     print(f"[{datetime.now()}] 启动股票卖出信号检测流水线...")
@@ -275,7 +218,6 @@ def main():
         report_content = generate_sell_report(stocks_data)
         
         # 3. 提取标题并发送
-        lines = report_content.split('\n')
         subject = f"卖出信号分析报告: {len(sell_signals)} 只股票建议卖出" if sell_signals else "卖出信号分析报告: 暂无卖出信号"
         
         send_email(subject, report_content)
@@ -287,16 +229,7 @@ def main():
     except Exception as e:
         error_msg = str(e)
         print(f"[{datetime.now()}] ❌ 流水线执行异常: {error_msg}")
-        
-        # 提供更友好的错误提示
-        if "QQ邮箱认证失败" in error_msg or "535" in error_msg or "authentication failed" in error_msg.lower():
-            print(f"[{datetime.now()}] ⚠️  邮件发送失败，但分析报告已生成。")
-            print(f"[{datetime.now()}] 请按照上述提示配置 QQ邮箱授权码。")
-        elif "API" in error_msg or "api_key" in error_msg.lower() or "DEEPSEEK" in error_msg:
-            print(f"[{datetime.now()}] 提示: 请检查 DEEPSEEK_API_KEY 环境变量是否正确设置")
-        elif "邮件配置不完整" in error_msg:
-            print(f"[{datetime.now()}] 提示: 请检查邮箱相关环境变量（EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER）")
+        handle_pipeline_error(error_msg)
 
 if __name__ == "__main__":
     main()
-

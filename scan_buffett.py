@@ -1,6 +1,6 @@
 """
-纳斯达克前100股票扫描脚本
-扫描纳斯达克市值排名前100的股票，找出满足买入条件的股票
+巴菲特Q3持仓股票扫描脚本
+扫描巴菲特Q3持仓的主要股票，找出满足买入条件的股票
 """
 from datetime import datetime
 import time
@@ -18,41 +18,26 @@ from stock_utils import (
 # ==========================================
 MIN_RULES_PASSED = 6  # 至少满足6个规则才值得买入
 
-def get_nasdaq_top100_symbols():
+def get_buffett_q3_symbols():
     """
-    获取纳斯达克市值排名前100的股票代码列表
-    使用纳斯达克100成分股列表（Nasdaq-100指数成分股）
+    获取巴菲特Q3持仓的主要股票代码列表
+    基于巴菲特Q3持仓报告（2023年第三季度）
     """
-    # 纳斯达克100指数成分股列表（2024年更新）
-    # 这些是纳斯达克交易所市值最大的100只非金融类股票
-    nasdaq_100_symbols = [
-        "AAPL", "MSFT", "AMZN", "NVDA", "GOOGL", "GOOG", "META", "TSLA",
-        "AVGO", "COST", "NFLX", "AMD", "PEP", "ADBE", "CSCO", "CMCSA",
-        "INTC", "INTU", "AMGN", "TXN", "AMAT", "HON", "ISRG", "BKNG",
-        "VRTX", "ADI", "GILD", "REGN", "LRCX", "SNPS", "CDNS", "KLAC",
-        "ADP", "CTSH", "NXPI", "FTNT", "ON", "PAYX", "MRVL", "IDXX",
-        "DXCM", "BKR", "FAST", "ANSS", "CPRT", "CRWD", "CTAS", "ENPH",
-        "ODFL", "CDW", "TEAM", "ZS", "MCHP", "MELI", "ALGN", "FANG",
-        "PCAR", "ROST", "KDP", "GEHC", "AEP", "DLTR", "EXC", "XEL",
-        "EA", "WBD", "VRSK", "ILMN", "TTD", "DDOG", "MDB", "DOCN",
-        "NET", "FTNT", "PANW", "OKTA", "ZM", "DOCU", "COUP", "NOW",
-        "SNOW", "PLTR", "RBLX", "U", "BILL", "AFRM", "HOOD", "SOFI",
-        "UPST", "LCID", "RIVN", "FRSH", "GTLB", "ASAN", "ESTC", "PATH",
-        "CFLT", "APP", "AI", "CARM", "BMBL", "BAND", "BIDU", "JD"
+    # 巴菲特Q3持仓主要股票列表（按持仓占比排序）
+    buffett_symbols = [
+        "AAPL",   # 苹果 - 22.69%
+        "AXP",    # 美国运通 - 18.84%
+        "BAC",    # 美国银行 - 10.96%
+        "KO",     # 可口可乐 - 9.92%
+        "CVX",    # 雪佛龙 - 7.09%
+        "OXY",    # 西方石油 - 4.68%
+        "MCO",    # 穆迪 - 4.40%
+        "CB",     # 安达保险 - 3.31% (增持)
+        "KHC",    # 卡夫亨氏 - 3.17%
+        "GOOGL",  # 谷歌-A - 1.62% (新建仓)
     ]
     
-    # 如果列表不足100个，补充一些其他纳斯达克大市值股票
-    if len(nasdaq_100_symbols) < 100:
-        additional_symbols = [
-            "QCOM", "MU", "LRCX", "SWKS", "QRVO", "MCHP", "MPWR", "OLED",
-            "ALKS", "INCY", "BIIB", "CELG", "ILMN", "SGEN", "VRTX", "EXAS",
-            "NTES", "PDD", "BABA", "NIO", "XPEV", "LI", "BILI", "TME"
-        ]
-        nasdaq_100_symbols.extend(additional_symbols)
-    
-    # 去重并返回前100个
-    unique_symbols = list(dict.fromkeys(nasdaq_100_symbols))  # 保持顺序的去重
-    return unique_symbols[:100]
+    return buffett_symbols
 
 def generate_ai_report(stocks_data, total_worthy_count):
     """
@@ -78,14 +63,14 @@ def generate_ai_report(stocks_data, total_worthy_count):
     prompt = f"""
     你是资深价值投资分析师，擅长量化趋势分析。
     
-    以下是纳斯达克市值排名前100股票扫描结果：
+    以下是巴菲特Q3持仓股票扫描结果：
     - 总共发现 {total_worthy_count} 只股票满足买入条件（至少满足{MIN_RULES_PASSED}个检验项）
     - 以下仅展示满足规则数量最多的前5只股票的详细分析数据：
     
     {all_stocks_text}
     
     请根据以上数据写一份专业的邮件报告。
-    1. 标题为【纳斯达克前100股票扫描报告 - {datetime.now().strftime('%Y-%m-%d')}】
+    1. 标题为【巴菲特Q3持仓股票扫描报告 - {datetime.now().strftime('%Y-%m-%d')}】
     2. 在报告开头说明：本次扫描共发现 {total_worthy_count} 只股票满足买入条件，以下仅展示满足规则数量最多的前5只股票的详细清单
     3. 对这5只股票分别进行如下操作：
        a. 首先列出当前这几个关键值的数值，方便我去对比数据的正确性
@@ -104,26 +89,27 @@ def generate_ai_report(stocks_data, total_worthy_count):
           10周线是否位于20周线之上：✅
           当前股价是否处于20周线之上：❌
     4. 最后给出这5只股票的综合对比分析和投资建议，按达成规则数量排序，优先推荐达成规则最多的股票
+    5. 特别说明：这些股票都是巴菲特Q3持仓的主要股票，请结合价值投资理念进行分析
     """
     
     return call_deepseek_api(prompt)
 
 def main():
-    print(f"[{datetime.now()}] 启动纳斯达克前100股票扫描流水线...")
+    print(f"[{datetime.now()}] 启动巴菲特Q3持仓股票扫描流水线...")
     
     try:
-        # 1. 获取纳斯达克前100股票列表
-        print(f"[{datetime.now()}] 正在获取纳斯达克市值排名前100的股票列表...")
-        nasdaq_symbols = get_nasdaq_top100_symbols()
-        print(f"[{datetime.now()}] 获取到 {len(nasdaq_symbols)} 只股票")
+        # 1. 获取巴菲特Q3持仓股票列表
+        print(f"[{datetime.now()}] 正在获取巴菲特Q3持仓股票列表...")
+        buffett_symbols = get_buffett_q3_symbols()
+        print(f"[{datetime.now()}] 获取到 {len(buffett_symbols)} 只股票")
         
         # 2. 循环分析所有股票
         failed_stocks = []
         worthy_stocks = []  # 值得买入的股票（满足至少MIN_RULES_PASSED个规则）
         
-        for idx, symbol in enumerate(nasdaq_symbols, 1):
+        for idx, symbol in enumerate(buffett_symbols, 1):
             try:
-                print(f"[{datetime.now()}] [{idx}/{len(nasdaq_symbols)}] 正在分析 {symbol}...")
+                print(f"[{datetime.now()}] [{idx}/{len(buffett_symbols)}] 正在分析 {symbol}...")
                 data = get_stock_analysis(symbol)
                 
                 if data is None:
@@ -158,8 +144,8 @@ def main():
         top5_stocks_data = [stock[2] for stock in top5_stocks]
         
         print(f"[{datetime.now()}] 扫描完成！")
-        print(f"[{datetime.now()}] 总计分析: {len(nasdaq_symbols)} 只股票")
-        print(f"[{datetime.now()}] 分析成功: {len(nasdaq_symbols) - len(failed_stocks)} 只")
+        print(f"[{datetime.now()}] 总计分析: {len(buffett_symbols)} 只股票")
+        print(f"[{datetime.now()}] 分析成功: {len(buffett_symbols) - len(failed_stocks)} 只")
         print(f"[{datetime.now()}] 分析失败: {len(failed_stocks)} 只")
         print(f"[{datetime.now()}] 值得买入: {total_worthy_count} 只（满足至少{MIN_RULES_PASSED}个规则）")
         
@@ -180,7 +166,7 @@ def main():
             
             # 提取标题并发送
             lines = report_content.split('\n')
-            subject = f"纳斯达克前100股票扫描报告 - {datetime.now().strftime('%Y-%m-%d')}"
+            subject = f"巴菲特Q3持仓股票扫描报告 - {datetime.now().strftime('%Y-%m-%d')}"
             if lines and "【" in lines[0] and "】" in lines[0]:
                 title_line = lines[0]
                 if "【" in title_line:
@@ -192,17 +178,17 @@ def main():
             print(f"[{datetime.now()}] ℹ️  本次扫描未发现满足买入条件的股票（需要至少满足{MIN_RULES_PASSED}个规则）")
             # 即使没有值得买入的股票，也可以发送一个简短的报告
             summary = f"""
-纳斯达克前100股票扫描报告 - {datetime.now().strftime('%Y-%m-%d')}
+巴菲特Q3持仓股票扫描报告 - {datetime.now().strftime('%Y-%m-%d')}
 
 扫描结果：
-- 总计分析股票数: {len(nasdaq_symbols)}
-- 成功分析: {len(nasdaq_symbols) - len(failed_stocks)} 只
+- 总计分析股票数: {len(buffett_symbols)}
+- 成功分析: {len(buffett_symbols) - len(failed_stocks)} 只
 - 分析失败: {len(failed_stocks)} 只
 - 值得买入: 0 只（需要至少满足{MIN_RULES_PASSED}个规则）
 
 本次扫描未发现满足买入条件的股票。建议继续观察市场变化。
             """
-            send_email(f"纳斯达克前100股票扫描报告 - {datetime.now().strftime('%Y-%m-%d')}", summary)
+            send_email(f"巴菲特Q3持仓股票扫描报告 - {datetime.now().strftime('%Y-%m-%d')}", summary)
             print(f"[{datetime.now()}] ✅ 扫描摘要已推送至邮箱。")
         
     except Exception as e:
@@ -212,3 +198,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
