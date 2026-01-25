@@ -3,7 +3,7 @@ name: Stock Sell Signal Pipeline
 on:
   schedule:
     # 测试：每30分钟执行一次
-    - cron: '*/30 * * * *'
+    - cron: '*/25 * * * *'
   workflow_dispatch: # 这是一个"手动触发"开关，方便你随时测试
 
 jobs:
