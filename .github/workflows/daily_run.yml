@@ -6,6 +6,8 @@ on:
     branches:
       - main
       - master
+    paths:
+      - 'buySingleStock.py'
 
 jobs:
   build_and_run:

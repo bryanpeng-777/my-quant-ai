@@ -6,6 +6,8 @@ on:
     branches:
       - main
       - master
+    paths:
+      - 'scanNasdaq100.py'
 
 jobs:
   scan_nasdaq100:

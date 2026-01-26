@@ -6,6 +6,8 @@ on:
     branches:
       - main
       - master
+    paths:
+      - 'sellSingleStock.py'
 
 jobs:
   check_sell_signal:

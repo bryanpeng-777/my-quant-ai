@@ -6,6 +6,8 @@ on:
     branches:
       - main
       - master
+    paths:
+      - 'scan_jensen_huang.py'
 
 jobs:
   scan_jensen_huang:
