@@ -1,13 +1,20 @@
 """
 股票卖出信号检测脚本
 基于MACD死亡交叉分析，检测股票是否应该卖出
+支持美股(US)和港股(HK)
 """
 import yfinance as yf
 from datetime import datetime
 import pandas as pd
 from stock_utils import (
+    MARKET_US,
+    MARKET_HK,
     calculate_macd,
     get_stock_data,
+    normalize_symbol,
+    get_display_symbol,
+    get_market_name,
+    get_currency_symbol,
     call_deepseek_api,
     send_email,
     handle_pipeline_error
@@ -15,21 +22,40 @@ from stock_utils import (
 
 # ==========================================
 # 股票代码配置：在此添加要分析的股票代码
+# 格式: {市场类型: [股票代码列表]}
 # ==========================================
-STOCK_SYMBOLS = [
-    "NVDA",  # 英伟达
-    "AAPL",  # 苹果
-    "TSLA",  # 特斯拉
-    "GOOGL",  # 谷歌
-    "KO",  # 可口可乐
-    "JD",  # 京东
-    "BABA",  # 阿里
-    "EDU",  # 新东方
-    "BEKE",  # 贝壳
-    "NTES",  # 网易
-    "TSM",  # 台积电
-    "NKE",  # 耐克
-]
+STOCK_CONFIG = {
+    # 美股列表
+    MARKET_US: [
+        "NVDA",  # 英伟达
+        "AAPL",  # 苹果
+        "TSLA",  # 特斯拉
+        "GOOGL",  # 谷歌
+        "KO",  # 可口可乐
+        "JD",  # 京东
+        "BABA",  # 阿里
+        "EDU",  # 新东方
+        "BEKE",  # 贝壳
+        "NTES",  # 网易
+        "TSM",  # 台积电
+        "NKE",  # 耐克
+    ],
+    # 港股列表
+    MARKET_HK: [
+        "0700",   # 腾讯控股
+        "9988",   # 阿里巴巴-SW
+        "3690",   # 美团
+        "1810",   # 小米集团
+        "1024",   # 快手
+        "9618",   # 京东集团-SW
+        "9888",   # 百度集团-SW
+        "9999",   # 网易-S
+        "9868",   # 小鹏汽车-W
+        "2015",   # 理想汽车-W
+        "2331",   # 李宁
+        "2020",   # 安踏体育
+    ],
+}
 
 def find_last_death_cross_week(df):
     """
@@ -65,23 +91,25 @@ def find_last_death_cross_week(df):
     
     return None, None
 
-def check_sell_signal(symbol):
+def check_sell_signal(symbol, market=MARKET_US):
     """
     检查是否应该卖出股票
     
     Args:
         symbol: 股票代码
+        market: 市场类型 (US/HK)
     
     Returns:
         (should_sell, analysis_data): 是否应该卖出和分析数据
     """
-    df = get_stock_data(symbol)
+    df = get_stock_data(symbol, market)
     
     if df is None or len(df) < 2:
         return False, {
             "error": "数据不足，无法进行分析",
             "price": None,
             "death_cross_week_low": None,
+            "market": market,
         }
     
     # 计算MACD
@@ -90,7 +118,8 @@ def check_sell_signal(symbol):
     # 获取当前价格（实时价格或最新收盘价）
     try:
         # 尝试获取实时价格
-        ticker = yf.Ticker(symbol)
+        normalized_symbol = normalize_symbol(symbol, market)
+        ticker = yf.Ticker(normalized_symbol)
         info = ticker.info
         current_price = info.get('regularMarketPrice') or info.get('currentPrice')
         if current_price is None:
@@ -109,7 +138,8 @@ def check_sell_signal(symbol):
             "death_cross_week_low": None,
             "death_cross_found": False,
             "should_sell": False,
-            "reason": "未找到死亡交叉点"
+            "reason": "未找到死亡交叉点",
+            "market": market,
         }
     
     # 检查当前价格是否跌破死亡交叉周的最低价
@@ -125,7 +155,8 @@ def check_sell_signal(symbol):
         "death_cross_found": True,
         "should_sell": should_sell,
         "price_drop_pct": round(((current_price - death_cross_week_low) / death_cross_week_low * 100), 2) if death_cross_week_low > 0 else None,
-        "reason": "当前价格已跌破死亡交叉周最低价" if should_sell else "当前价格未跌破死亡交叉周最低价"
+        "reason": "当前价格已跌破死亡交叉周最低价" if should_sell else "当前价格未跌破死亡交叉周最低价",
+        "market": market,
     }
 
 def generate_sell_report(stocks_data):
@@ -133,24 +164,32 @@ def generate_sell_report(stocks_data):
     将多只股票的卖出分析结果喂给 DeepSeek，让它生成专业报告
     
     Args:
-        stocks_data: 字典，格式为 {symbol: data_dict, ...}
+        stocks_data: 字典，格式为 {(market, symbol): data_dict, ...}
     
     Returns:
         AI 生成的报告内容
     """
+    # 统计各市场股票数量
+    us_count = sum(1 for (m, _) in stocks_data.keys() if m == MARKET_US)
+    hk_count = sum(1 for (m, _) in stocks_data.keys() if m == MARKET_HK)
+    
     # 构建所有股票的分析数据字符串
     stocks_analysis = []
     
-    for symbol, data in stocks_data.items():
+    for (market, symbol), data in stocks_data.items():
+        market_name = get_market_name(market)
+        currency = get_currency_symbol(market)
+        display_symbol = get_display_symbol(symbol, market)
+        
         stock_info = f"""
 ==========================================
-标的: {symbol}
-当前价格: ${data.get('price', 'N/A')}
+标的: {display_symbol} ({market_name})
+当前价格: {currency}{data.get('price', 'N/A')}
 
 死亡交叉分析:
 - 是否找到死亡交叉: {"✅ 是" if data.get('death_cross_found', False) else "❌ 否"}
 - 死亡交叉周日期: {data.get('death_cross_date', 'N/A')}
-- 死亡交叉周最低价: ${data.get('death_cross_week_low', 'N/A')}
+- 死亡交叉周最低价: {currency}{data.get('death_cross_week_low', 'N/A')}
 - 价格跌幅: {data.get('price_drop_pct', 'N/A')}%
 
 卖出信号: {"🔴 建议卖出" if data.get('should_sell', False) else "🟢 继续持有"}
@@ -161,10 +200,18 @@ def generate_sell_report(stocks_data):
     
     all_stocks_text = "\n".join(stocks_analysis)
     
-    prompt = f"""
-    你是资深价值投资分析师，擅长量化趋势分析。
+    # 构建市场描述
+    market_desc = []
+    if us_count > 0:
+        market_desc.append(f"美股 {us_count} 只")
+    if hk_count > 0:
+        market_desc.append(f"港股 {hk_count} 只")
+    market_summary = "、".join(market_desc)
     
-    以下是需要分析的股票卖出信号列表（共 {len(stocks_data)} 只）：
+    prompt = f"""
+    你是资深价值投资分析师，擅长量化趋势分析，熟悉美股和港股市场。
+    
+    以下是需要分析的股票卖出信号列表（共 {len(stocks_data)} 只，包含 {market_summary}）：
     {all_stocks_text}
     
     请根据以上数据写一份专业的邮件报告。
@@ -177,17 +224,24 @@ def generate_sell_report(stocks_data):
        e. 给出明确的卖出建议（卖出/继续持有）
     3. 最后给出所有股票的综合分析和操作建议
     4. 特别标注需要立即卖出的股票（如果有）
+    5. 注意：美股价格单位为美元($)，港股价格单位为港币(HK$)，请在报告中明确标注
     """
     
     return call_deepseek_api(prompt)
 
 def main():
-    print(f"[{datetime.now()}] 启动股票卖出信号检测流水线...")
-    print(f"[{datetime.now()}] 待分析股票: {', '.join(STOCK_SYMBOLS)}")
+    print(f"[{datetime.now()}] 启动多市场股票卖出信号检测流水线...")
     
-    if not STOCK_SYMBOLS:
-        print(f"[{datetime.now()}] ⚠️  警告: STOCK_SYMBOLS 列表为空，请在配置中添加股票代码")
+    # 统计待分析股票
+    total_stocks = sum(len(symbols) for symbols in STOCK_CONFIG.values())
+    if total_stocks == 0:
+        print(f"[{datetime.now()}] ⚠️  警告: 股票配置为空，请在 STOCK_CONFIG 中添加股票代码")
         return
+    
+    for market, symbols in STOCK_CONFIG.items():
+        if symbols:
+            market_name = get_market_name(market)
+            print(f"[{datetime.now()}] {market_name}待分析: {', '.join(symbols)}")
     
     try:
         # 1. 循环检查所有股票的卖出信号
@@ -195,23 +249,29 @@ def main():
         failed_stocks = []
         sell_signals = []
         
-        for symbol in STOCK_SYMBOLS:
-            try:
-                print(f"[{datetime.now()}] 正在检查 {symbol} 的卖出信号...")
-                should_sell, analysis_data = check_sell_signal(symbol)
-                stocks_data[symbol] = analysis_data
-                
-                if should_sell:
-                    sell_signals.append(symbol)
-                    print(f"[{datetime.now()}] 🔴 {symbol} 触发卖出信号！")
-                    print(f"[{datetime.now()}]    当前价格: ${analysis_data.get('price')}")
-                    print(f"[{datetime.now()}]    死亡交叉周最低价: ${analysis_data.get('death_cross_week_low')}")
-                else:
-                    print(f"[{datetime.now()}] 🟢 {symbol} 继续持有")
-            except Exception as e:
-                error_msg = str(e)
-                print(f"[{datetime.now()}] ⚠️  {symbol} 分析失败: {error_msg}")
-                failed_stocks.append(symbol)
+        for market, symbols in STOCK_CONFIG.items():
+            market_name = get_market_name(market)
+            currency = get_currency_symbol(market)
+            
+            for symbol in symbols:
+                try:
+                    print(f"[{datetime.now()}] 正在检查{market_name} {symbol} 的卖出信号...")
+                    should_sell, analysis_data = check_sell_signal(symbol, market)
+                    stocks_data[(market, symbol)] = analysis_data
+                    
+                    if should_sell:
+                        display_symbol = get_display_symbol(symbol, market)
+                        sell_signals.append(f"{market_name} {display_symbol}")
+                        print(f"[{datetime.now()}] 🔴 {market_name} {display_symbol} 触发卖出信号！")
+                        print(f"[{datetime.now()}]    当前价格: {currency}{analysis_data.get('price')}")
+                        print(f"[{datetime.now()}]    死亡交叉周最低价: {currency}{analysis_data.get('death_cross_week_low')}")
+                    else:
+                        display_symbol = get_display_symbol(symbol, market)
+                        print(f"[{datetime.now()}] 🟢 {market_name} {display_symbol} 继续持有")
+                except Exception as e:
+                    error_msg = str(e)
+                    print(f"[{datetime.now()}] ⚠️  {market_name} {symbol} 分析失败: {error_msg}")
+                    failed_stocks.append(f"{market_name} {symbol}")
         
         if not stocks_data:
             print(f"[{datetime.now()}] ❌ 所有股票分析均失败，无法生成报告")
@@ -229,7 +289,7 @@ def main():
         
         send_email(subject, report_content)
         print(f"[{datetime.now()}] ✅ 流水线执行成功，报告已推送至邮箱。")
-        print(f"[{datetime.now()}] 成功分析股票数: {len(stocks_data)}/{len(STOCK_SYMBOLS)}")
+        print(f"[{datetime.now()}] 成功分析股票数: {len(stocks_data)}/{total_stocks}")
         if sell_signals:
             print(f"[{datetime.now()}] 🔴 建议卖出股票: {', '.join(sell_signals)}")
         
