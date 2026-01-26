@@ -1,6 +1,7 @@
 """
 股票分析工具库 - 公共函数模块
 包含：配置读取、MACD计算、股票分析、邮件发送等公共功能
+支持多市场：美股(US)、港股(HK)
 """
 import os
 import yfinance as yf
@@ -10,6 +11,12 @@ from email.message import EmailMessage
 from datetime import datetime
 import pandas as pd
 import numpy as np
+
+# ==========================================
+# 支持的市场类型
+# ==========================================
+MARKET_US = "US"
+MARKET_HK = "HK"
 
 # ==========================================
 # 核心配置：从 GitHub Secrets 读取环境变量
@@ -22,6 +29,70 @@ def get_config():
         "SENDER_PASSWORD": os.environ.get("EMAIL_PASSWORD"),
         "RECEIVER_EMAIL": os.environ.get("EMAIL_RECEIVER"),
     }
+
+# ==========================================
+# 市场相关工具函数
+# ==========================================
+def get_currency_symbol(market):
+    """
+    获取市场对应的货币符号
+    
+    Args:
+        market: 市场类型 (US/HK)
+    
+    Returns:
+        货币符号字符串
+    """
+    return "HK$" if market == MARKET_HK else "$"
+
+def get_market_name(market):
+    """
+    获取市场中文名称
+    
+    Args:
+        market: 市场类型 (US/HK)
+    
+    Returns:
+        市场中文名称
+    """
+    return "港股" if market == MARKET_HK else "美股"
+
+def normalize_symbol(symbol, market):
+    """
+    标准化股票代码格式
+    
+    Args:
+        symbol: 股票代码
+        market: 市场类型 (US/HK)
+    
+    Returns:
+        标准化后的代码（港股添加.HK后缀，美股保持原样）
+    """
+    symbol = symbol.strip().upper()
+    
+    if market == MARKET_HK:
+        # 港股需要添加 .HK 后缀
+        if symbol.endswith('.HK'):
+            return symbol
+        return f"{symbol}.HK"
+    
+    # 美股直接返回
+    return symbol
+
+def get_display_symbol(symbol, market):
+    """
+    获取用于显示的股票代码（移除后缀）
+    
+    Args:
+        symbol: 股票代码
+        market: 市场类型 (US/HK)
+    
+    Returns:
+        显示用的代码
+    """
+    if market == MARKET_HK:
+        return symbol.replace('.HK', '').replace('.hk', '')
+    return symbol
 
 # ==========================================
 # MACD 计算
@@ -49,12 +120,13 @@ def calculate_macd(df, fast=12, slow=26, signal=9):
 # ==========================================
 # 股票数据获取
 # ==========================================
-def get_stock_data(symbol, period="2y", interval="1wk"):
+def get_stock_data(symbol, market=MARKET_US, period="2y", interval="1wk"):
     """
     获取股票历史数据
     
     Args:
         symbol: 股票代码
+        market: 市场类型 (US/HK)
         period: 数据周期，默认2年
         interval: 数据间隔，默认周线
     
@@ -62,11 +134,13 @@ def get_stock_data(symbol, period="2y", interval="1wk"):
         包含历史数据的 DataFrame，失败返回 None
     """
     try:
-        ticker = yf.Ticker(symbol)
+        normalized_symbol = normalize_symbol(symbol, market)
+        ticker = yf.Ticker(normalized_symbol)
         df = ticker.history(period=period, interval=interval)
         return df if len(df) > 0 else None
     except Exception as e:
-        print(f"获取 {symbol} 数据时出错: {str(e)}")
+        market_name = get_market_name(market)
+        print(f"获取{market_name} {symbol} 数据时出错: {str(e)}")
         return None
 
 # ==========================================
@@ -190,27 +264,31 @@ def check_buy_rules(df):
         "rule_10": rule_10,  # 最近一周的收盘价是否是至少10周的最高价
     }
 
-def get_stock_analysis(symbol):
+def get_stock_analysis(symbol, market=MARKET_US):
     """
     获取股票分析数据（包含买入规则检验）
     
     Args:
         symbol: 股票代码
+        market: 市场类型 (US/HK)
     
     Returns:
         包含分析结果的字典，失败返回 None
     """
     try:
-        df = get_stock_data(symbol)
+        df = get_stock_data(symbol, market)
         if df is None or len(df) < 30:
             return None
         
         result = check_buy_rules(df)
         if result:
-            result["symbol"] = symbol
+            # 保存显示用的代码
+            result["symbol"] = get_display_symbol(symbol, market)
+            result["market"] = market
         return result
     except Exception as e:
-        print(f"分析 {symbol} 时出错: {str(e)}")
+        market_name = get_market_name(market)
+        print(f"分析{market_name} {symbol} 时出错: {str(e)}")
         return None
 
 def count_rules_passed(data):
@@ -232,33 +310,37 @@ def count_rules_passed(data):
 # ==========================================
 # 报告生成辅助函数
 # ==========================================
-def format_stock_analysis_text(data, symbol=None):
+def format_stock_analysis_text(data, symbol=None, market=None):
     """
     格式化单只股票的分析文本
     
     Args:
         data: 股票分析数据字典
         symbol: 股票代码（如果 data 中没有）
+        market: 市场类型（如果 data 中没有）
     
     Returns:
         格式化的分析文本
     """
     stock_symbol = data.get('symbol', symbol)
+    stock_market = data.get('market', market) or MARKET_US
+    currency = get_currency_symbol(stock_market)
+    market_name = get_market_name(stock_market)
     rules_passed = count_rules_passed(data)
     total_rules = 10
     
     return f"""
 ==========================================
-标的: {stock_symbol}
-当前价格: ${data['price']}
+标的: {stock_symbol} ({market_name})
+当前价格: {currency}{data['price']}
 
 技术指标状况:
-- 周线 10MA: ${data['ma10']}
-- 周线 20MA: ${data['ma20']}
-- 周线 30MA: ${data['ma30']}
+- 周线 10MA: {currency}{data['ma10']}
+- 周线 20MA: {currency}{data['ma20']}
+- 周线 30MA: {currency}{data['ma30']}
 - MACD DIF: {data['macd_dif']}
 - MACD DEA: {data['macd_dea']}
-- 上一周收盘价: ${data['prev_close']}
+- 上一周收盘价: {currency}{data['prev_close']}
 - 当前周成交量: {data['curr_volume']}
 - 上一周成交量: {data['prev_volume']}
 
@@ -378,4 +460,3 @@ def handle_pipeline_error(error_msg):
         print(f"[{datetime.now()}] 提示: 请检查 DEEPSEEK_API_KEY 环境变量是否正确设置")
     elif "邮件配置不完整" in error_msg:
         print(f"[{datetime.now()}] 提示: 请检查邮箱相关环境变量（EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER）")
-
