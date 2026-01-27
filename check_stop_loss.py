@@ -201,21 +201,21 @@ def generate_stop_loss_report(triggered_records, all_records_data):
         stocks_analysis.append("═══════════════════════════════════════")
         
         for record in triggered_records:
-        market = record['market']
-        symbol = record['symbol']
-        market_name = get_market_name(market)
-        currency = get_currency_symbol(market)
-        display_symbol = get_display_symbol(symbol, market)
-        
-        quantity_info = ""
-        if record.get('quantity'):
-            quantity_info = f"购买数量: {record['quantity']} 股\n"
-        
-        loss_amount_info = ""
-        if record.get('loss_amount') is not None:
-            loss_amount_info = f"亏损金额: {currency}{record['loss_amount']}\n"
-        
-        stock_info = f"""
+            market = record['market']
+            symbol = record['symbol']
+            market_name = get_market_name(market)
+            currency = get_currency_symbol(market)
+            display_symbol = get_display_symbol(symbol, market)
+            
+            quantity_info = ""
+            if record.get('quantity'):
+                quantity_info = f"购买数量: {record['quantity']} 股\n"
+            
+            loss_amount_info = ""
+            if record.get('loss_amount') is not None:
+                loss_amount_info = f"亏损金额: {currency}{record['loss_amount']}\n"
+            
+            stock_info = f"""
 ==========================================
 标的: {display_symbol} ({market_name})
 买入日期: {record['purchase_date']}
