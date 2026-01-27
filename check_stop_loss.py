@@ -78,17 +78,28 @@ def check_stop_loss(record):
             "quantity": quantity
         }
     
-    # 计算跌幅百分比（基于本次买入价格）
+    # 计算价格变化百分比（基于本次买入价格）
+    # 公式：(当前价格 - 购买价格) / 购买价格 × 100
+    # 当价格上涨时，change_pct 为正数；当价格下跌时，change_pct 为负数
+    change_pct = (current_price - purchase_price) / purchase_price * 100
+    
+    # 计算跌幅百分比（用于止损判断，始终为正数）
+    # 公式：(购买价格 - 当前价格) / 购买价格 × 100
+    # 当价格下跌时，drop_pct 为正数；当价格上涨时，drop_pct 为负数或0
     drop_pct = (purchase_price - current_price) / purchase_price * 100
     
-    # 判断是否触发止损（跌幅 >= 7%）
+    # 判断是否触发止损
+    # 止损条件：当前价格 < 购买价格 × (1 - 7%) = 购买价格 × 0.93
+    # 即：跌幅 >= 7%
     # 注意：每次买入的止损点是独立的，基于各自的买入价格计算
-    triggered = drop_pct >= STOP_LOSS_THRESHOLD
+    stop_loss_price = purchase_price * (1 - STOP_LOSS_THRESHOLD / 100)
+    triggered = current_price < stop_loss_price
     
     # 计算盈亏金额（如果提供了数量）
-    loss_amount = None
+    # 如果价格上涨，profit_amount 为正数（盈利）；如果价格下跌，profit_amount 为负数（亏损）
+    profit_amount = None
     if quantity is not None:
-        loss_amount = (purchase_price - current_price) * quantity
+        profit_amount = (current_price - purchase_price) * quantity
     
     return triggered, {
         "symbol": symbol,
@@ -97,8 +108,9 @@ def check_stop_loss(record):
         "purchase_date": purchase_date,
         "quantity": quantity,
         "current_price": current_price,
-        "drop_pct": round(drop_pct, 2),
-        "loss_amount": round(loss_amount, 2) if loss_amount is not None else None,
+        "change_pct": round(change_pct, 2),  # 价格变化百分比（正数=上涨，负数=下跌）
+        "drop_pct": round(drop_pct, 2),  # 跌幅百分比（正数=下跌，负数或0=上涨）
+        "profit_amount": round(profit_amount, 2) if profit_amount is not None else None,  # 盈亏金额（正数=盈利，负数=亏损）
         "triggered": triggered
     }
 
@@ -149,13 +161,26 @@ def check_all_stop_loss():
                 if analysis_data.get('quantity'):
                     print(f"[{datetime.now()}]    购买数量: {analysis_data['quantity']} 股")
                 print(f"[{datetime.now()}]    当前价格: {currency}{analysis_data['current_price']}")
-                print(f"[{datetime.now()}]    跌幅: {analysis_data['drop_pct']}%")
-                if analysis_data.get('loss_amount') is not None:
-                    print(f"[{datetime.now()}]    亏损金额: {currency}{analysis_data['loss_amount']}")
+                change_pct = analysis_data.get('change_pct', analysis_data['drop_pct'] * -1)
+                if change_pct >= 0:
+                    print(f"[{datetime.now()}]    涨幅: +{change_pct}%")
+                else:
+                    print(f"[{datetime.now()}]    跌幅: {change_pct}%")
+                if analysis_data.get('profit_amount') is not None:
+                    profit_amount = analysis_data['profit_amount']
+                    if profit_amount >= 0:
+                        print(f"[{datetime.now()}]    盈利金额: {currency}{profit_amount}")
+                    else:
+                        print(f"[{datetime.now()}]    亏损金额: {currency}{profit_amount}")
             else:
                 display_symbol = get_display_symbol(symbol, market)
                 quantity_info = f" (数量: {analysis_data.get('quantity', 'N/A')}股)" if analysis_data.get('quantity') else ""
-                print(f"[{datetime.now()}] 🟢 {market_name} {display_symbol} 未触发止损 (买入日期: {analysis_data['purchase_date']}, 跌幅: {analysis_data['drop_pct']}%{quantity_info})")
+                change_pct = analysis_data.get('change_pct', analysis_data['drop_pct'] * -1)
+                if change_pct >= 0:
+                    change_info = f"涨幅: +{change_pct}%"
+                else:
+                    change_info = f"跌幅: {change_pct}%"
+                print(f"[{datetime.now()}] 🟢 {market_name} {display_symbol} 未触发止损 (买入日期: {analysis_data['purchase_date']}, {change_info}{quantity_info})")
         
         except Exception as e:
             error_msg = str(e)
@@ -211,9 +236,19 @@ def generate_stop_loss_report(triggered_records, all_records_data):
             if record.get('quantity'):
                 quantity_info = f"购买数量: {record['quantity']} 股\n"
             
-            loss_amount_info = ""
-            if record.get('loss_amount') is not None:
-                loss_amount_info = f"亏损金额: {currency}{record['loss_amount']}\n"
+            change_pct = record.get('change_pct', record['drop_pct'] * -1)
+            if change_pct >= 0:
+                change_info = f"涨幅: +{change_pct}%"
+            else:
+                change_info = f"跌幅: {change_pct}%"
+            
+            profit_info = ""
+            if record.get('profit_amount') is not None:
+                profit_amount = record['profit_amount']
+                if profit_amount >= 0:
+                    profit_info = f"盈利金额: {currency}{profit_amount}\n"
+                else:
+                    profit_info = f"亏损金额: {currency}{profit_amount}\n"
             
             stock_info = f"""
 ==========================================
@@ -221,8 +256,8 @@ def generate_stop_loss_report(triggered_records, all_records_data):
 买入日期: {record['purchase_date']}
 购买价格: {currency}{record['purchase_price']}
 {quantity_info}当前价格: {currency}{record['current_price']}
-跌幅: {record['drop_pct']}%
-{loss_amount_info}
+{change_info}
+{profit_info}
 止损信号: 🔴 触发止损（跌幅 >= {STOP_LOSS_THRESHOLD}%）
 说明: 本次买入（{record['purchase_date']}）的止损点已触发，建议卖出本次买入的持仓
 ==========================================
@@ -248,14 +283,28 @@ def generate_stop_loss_report(triggered_records, all_records_data):
             if record.get('quantity'):
                 quantity_info = f"购买数量: {record['quantity']} 股\n"
             
+            change_pct = record.get('change_pct', record['drop_pct'] * -1)
+            if change_pct >= 0:
+                change_info = f"涨幅: +{change_pct}%"
+            else:
+                change_info = f"跌幅: {change_pct}%"
+            
+            profit_info = ""
+            if record.get('profit_amount') is not None:
+                profit_amount = record['profit_amount']
+                if profit_amount >= 0:
+                    profit_info = f"盈利金额: {currency}{profit_amount}\n"
+                else:
+                    profit_info = f"亏损金额: {currency}{profit_amount}\n"
+            
             stock_info = f"""
 ==========================================
 标的: {display_symbol} ({market_name})
 买入日期: {record['purchase_date']}
 购买价格: {currency}{record['purchase_price']}
 {quantity_info}当前价格: {currency}{record['current_price']}
-跌幅: {record['drop_pct']}%
-
+{change_info}
+{profit_info}
 止损信号: 🟢 未触发止损（跌幅 < {STOP_LOSS_THRESHOLD}%）
 说明: 本次买入（{record['purchase_date']}）的止损点未触发，可继续持有
 ==========================================
