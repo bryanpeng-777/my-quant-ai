@@ -3,7 +3,7 @@
 检查指定指数型股票是否触发买入条件：
 1. 当前月的10月线价格高于上一个月的10月线价格（月线趋势向上）
 2. 10周线处于20周线之上（周线金叉）
-3. 当前价格低于5年线（60月均线）
+3. 当前价格低于5年线（年线MA5）
 同时满足三个条件才提示买入，支持美股(US)和港股(HK)
 """
 import pandas as pd
@@ -121,9 +121,8 @@ def check_index_buy_signal(symbol):
             "market": market
         }
     
-    # === 检查条件1和条件3：月线数据 ===
-    # 获取更长时间的数据以计算5年线（60月均线）
-    monthly_df = get_stock_data(symbol, market, period="max", interval="1mo")
+    # === 检查条件1：月线数据 ===
+    monthly_df = get_stock_data(symbol, market, period="2y", interval="1mo")
     
     if monthly_df is None or len(monthly_df) < 12:
         return None, {
@@ -150,17 +149,23 @@ def check_index_buy_signal(symbol):
     # 条件1：当前月10月线 > 上一月10月线（月线趋势向上）
     rule_1_passed = current_10ma_monthly > prev_10ma_monthly
     
-    # === 检查条件3：当前价格 < 5年线（60月均线）===
-    monthly_df['60MA'] = monthly_df['Close'].rolling(window=60).mean()
-    ma60_monthly = monthly_df.iloc[-1]['60MA']
-    
-    # 如果数据不足60个月，5年线可能为NaN，此时条件3视为不通过
-    if pd.isna(ma60_monthly):
-        rule_3_passed = False
-        ma60_monthly_value = None
+    # === 检查条件3：当前价格 < 5年线（年线MA5）===
+    yearly_df = get_stock_data(symbol, market, period="max", interval="1mo")
+    # 将月线数据重采样为年线数据
+    if yearly_df is not None and len(yearly_df) > 0:
+        yearly_df.index = pd.to_datetime(yearly_df.index)
+        yearly_resampled = yearly_df['Close'].resample('YE').last()
+        ma5_yearly = yearly_resampled.rolling(window=5).mean().iloc[-1] if len(yearly_resampled) >= 5 else None
     else:
-        rule_3_passed = current_price < ma60_monthly
-        ma60_monthly_value = round(ma60_monthly, 2)
+        ma5_yearly = None
+    
+    # 如果数据不足5年，5年线可能为NaN，此时条件3视为不通过
+    if ma5_yearly is None or pd.isna(ma5_yearly):
+        rule_3_passed = False
+        ma5_yearly_value = None
+    else:
+        rule_3_passed = current_price < ma5_yearly
+        ma5_yearly_value = round(ma5_yearly, 2)
     
     # === 检查条件2：周线10MA vs 20MA ===
     weekly_df = get_stock_data(symbol, market, period="2y", interval="1wk")
@@ -174,7 +179,7 @@ def check_index_buy_signal(symbol):
             "current_10ma_monthly": round(current_10ma_monthly, 2),
             "prev_10ma_monthly": round(prev_10ma_monthly, 2),
             "rule_1_passed": rule_1_passed,
-            "ma60_monthly": ma60_monthly_value,
+            "ma5_yearly": ma5_yearly_value,
             "rule_3_passed": rule_3_passed
         }
     
@@ -194,7 +199,7 @@ def check_index_buy_signal(symbol):
             "current_10ma_monthly": round(current_10ma_monthly, 2),
             "prev_10ma_monthly": round(prev_10ma_monthly, 2),
             "rule_1_passed": rule_1_passed,
-            "ma60_monthly": ma60_monthly_value,
+            "ma5_yearly": ma5_yearly_value,
             "rule_3_passed": rule_3_passed
         }
     
@@ -216,7 +221,7 @@ def check_index_buy_signal(symbol):
         "prev_10ma_monthly": round(prev_10ma_monthly, 2),
         "rule_1_passed": rule_1_passed,  # 月线趋势向上
         # 5年线数据
-        "ma60_monthly": ma60_monthly_value,  # 5年线（60月均线）
+        "ma5_yearly": ma5_yearly_value,  # 5年线（年线MA5）
         "rule_3_passed": rule_3_passed,  # 当前价格低于5年线
         # 周线数据
         "ma10_weekly": round(ma10_weekly, 2),
@@ -271,8 +276,8 @@ def check_all_watchlist():
                 print(f"[{datetime.now()}]    当前价格: {currency}{analysis_data['current_price']}")
                 print(f"[{datetime.now()}]    ✅ 条件1: 月线10MA向上 ({currency}{analysis_data['current_10ma_monthly']} > {currency}{analysis_data['prev_10ma_monthly']})")
                 print(f"[{datetime.now()}]    ✅ 条件2: 10周线 > 20周线 ({currency}{analysis_data['ma10_weekly']} > {currency}{analysis_data['ma20_weekly']})")
-                ma60 = analysis_data.get('ma60_monthly', 'N/A')
-                print(f"[{datetime.now()}]    ✅ 条件3: 当前价格 < 5年线 ({currency}{analysis_data['current_price']} < {currency}{ma60})")
+                ma5_yearly = analysis_data.get('ma5_yearly', 'N/A')
+                print(f"[{datetime.now()}]    ✅ 条件3: 当前价格 < 5年线 ({currency}{analysis_data['current_price']} < {currency}{ma5_yearly})")
                 
                 # 量价分析
                 vol = analysis_data.get('volume_analysis', {})
@@ -349,7 +354,7 @@ def generate_index_buy_report(buy_signals, all_records_data):
             display_symbol = get_display_symbol(symbol, market)
             vol = record.get('volume_analysis', {})
             
-            ma60 = record.get('ma60_monthly', 'N/A')
+            ma5_yearly = record.get('ma5_yearly', 'N/A')
             stock_info = f"""
 ==========================================
 标的: {display_symbol} ({market_name})
@@ -366,7 +371,7 @@ def generate_index_buy_report(buy_signals, all_records_data):
 - 周线状态: 🟢 10周线在20周线之上（金叉）
 
 5年线分析:
-- 5年线（60月均线）: {currency}{ma60}
+- 5年线（年线MA5）: {currency}{ma5_yearly}
 - 价格位置: 🟢 当前价格低于5年线（价值区间）
 
 量价分析（最近10个月）:
@@ -400,7 +405,7 @@ def generate_index_buy_report(buy_signals, all_records_data):
             display_symbol = get_display_symbol(symbol, market)
             vol = record.get('volume_analysis', {})
             
-            ma60 = record.get('ma60_monthly', 'N/A')
+            ma5_yearly = record.get('ma5_yearly', 'N/A')
             rule_3_status = "🟢 当前价格低于5年线" if record.get('rule_3_passed') else "🔴 当前价格高于5年线"
             stock_info = f"""
 ==========================================
@@ -418,7 +423,7 @@ def generate_index_buy_report(buy_signals, all_records_data):
 - 周线状态: {"🟢 10周线在20周线之上" if record['rule_2_passed'] else "🔴 10周线在20周线之下"}
 
 5年线分析:
-- 5年线（60月均线）: {currency}{ma60 if ma60 else '数据不足'}
+- 5年线（年线MA5）: {currency}{ma5_yearly if ma5_yearly else '数据不足'}
 - 价格位置: {rule_3_status}
 
 量价分析（最近10个月）:
@@ -470,9 +475,9 @@ def generate_index_buy_report(buy_signals, all_records_data):
     买入规则说明：
     1. 条件一：当前月的10月线价格 > 上一个月的10月线价格（月线趋势向上）
     2. 条件二：10周线 > 20周线（周线金叉）
-    3. 条件三：当前价格 < 5年线（60月均线）（处于价值区间）
+    3. 条件三：当前价格 < 5年线（年线MA5）（处于价值区间）
     必须同时满足三个条件才建议买入。这是一种结合趋势跟踪和价值投资的策略，适用于指数型股票的中长线投资。
-    5年线的意义：当价格低于5年线时，说明当前价格处于历史相对低位的价值区间，此时买入可以获得更好的安全边际。
+    5年线的意义：年线MA5是用年度收盘价计算的5年均线，当价格低于5年线时，说明当前价格处于历史相对低位的价值区间，此时买入可以获得更好的安全边际。
     
     量价分析规则：
     - 上涨放量、下跌缩量是正向信号，表明资金在积极介入
