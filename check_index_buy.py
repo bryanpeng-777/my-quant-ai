@@ -27,6 +27,7 @@ from stock_utils import (
 INDEX_WATCHLIST = [
     "VOO",      # Vanguard S&P 500 ETF
     "2800",
+    "BRK.B",
 ]
 
 
