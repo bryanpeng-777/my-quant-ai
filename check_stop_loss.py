@@ -46,6 +46,24 @@ def load_purchase_records():
         print(f"[{datetime.now()}] ⚠️  加载购买记录时出错: {str(e)}")
         return []
 
+def calculate_holding_days(purchase_date_str):
+    """
+    计算持有天数
+    
+    Args:
+        purchase_date_str: 购买日期字符串，格式为 YYYY-MM-DD
+    
+    Returns:
+        持有天数，如果日期格式无效则返回 None
+    """
+    try:
+        purchase_date = datetime.strptime(purchase_date_str, "%Y-%m-%d")
+        today = datetime.now()
+        holding_days = (today - purchase_date).days
+        return holding_days
+    except (ValueError, TypeError):
+        return None
+
 def check_stop_loss(record):
     """
     检查单条记录是否触发止损
@@ -62,6 +80,9 @@ def check_stop_loss(record):
     purchase_date = record['purchase_date']
     quantity = record.get('quantity', None)  # 购买数量（可选）
     
+    # 计算持有天数
+    holding_days = calculate_holding_days(purchase_date)
+    
     # 自动识别市场类型
     market = detect_market(symbol)
     
@@ -75,7 +96,8 @@ def check_stop_loss(record):
             "market": market,
             "purchase_price": purchase_price,
             "purchase_date": purchase_date,
-            "quantity": quantity
+            "quantity": quantity,
+            "holding_days": holding_days
         }
     
     # 计算价格变化百分比（基于本次买入价格）
@@ -111,6 +133,7 @@ def check_stop_loss(record):
         "change_pct": round(change_pct, 2),  # 价格变化百分比（正数=上涨，负数=下跌）
         "drop_pct": round(drop_pct, 2),  # 跌幅百分比（正数=下跌，负数或0=上涨）
         "profit_amount": round(profit_amount, 2) if profit_amount is not None else None,  # 盈亏金额（正数=盈利，负数=亏损）
+        "holding_days": holding_days,  # 持有天数
         "triggered": triggered
     }
 
@@ -157,6 +180,8 @@ def check_all_stop_loss():
                 currency = get_currency_symbol(market)
                 print(f"[{datetime.now()}] 🔴 {market_name} {display_symbol} 触发止损信号！")
                 print(f"[{datetime.now()}]    买入日期: {analysis_data['purchase_date']}")
+                if analysis_data.get('holding_days') is not None:
+                    print(f"[{datetime.now()}]    已持有: {analysis_data['holding_days']} 天")
                 print(f"[{datetime.now()}]    购买价格: {currency}{analysis_data['purchase_price']}")
                 if analysis_data.get('quantity'):
                     print(f"[{datetime.now()}]    购买数量: {analysis_data['quantity']} 股")
@@ -180,7 +205,8 @@ def check_all_stop_loss():
                     change_info = f"涨幅: +{change_pct}%"
                 else:
                     change_info = f"跌幅: {change_pct}%"
-                print(f"[{datetime.now()}] 🟢 {market_name} {display_symbol} 未触发止损 (买入日期: {analysis_data['purchase_date']}, {change_info}{quantity_info})")
+                holding_days_info = f", 已持有: {analysis_data['holding_days']}天" if analysis_data.get('holding_days') is not None else ""
+                print(f"[{datetime.now()}] 🟢 {market_name} {display_symbol} 未触发止损 (买入日期: {analysis_data['purchase_date']}{holding_days_info}, {change_info}{quantity_info})")
         
         except Exception as e:
             error_msg = str(e)
@@ -236,6 +262,10 @@ def generate_stop_loss_report(triggered_records, all_records_data):
             if record.get('quantity'):
                 quantity_info = f"购买数量: {record['quantity']} 股\n"
             
+            holding_days_info = ""
+            if record.get('holding_days') is not None:
+                holding_days_info = f"已持有天数: {record['holding_days']} 天\n"
+            
             change_pct = record.get('change_pct', record['drop_pct'] * -1)
             if change_pct >= 0:
                 change_info = f"涨幅: +{change_pct}%"
@@ -254,7 +284,7 @@ def generate_stop_loss_report(triggered_records, all_records_data):
 ==========================================
 标的: {display_symbol} ({market_name})
 买入日期: {record['purchase_date']}
-购买价格: {currency}{record['purchase_price']}
+{holding_days_info}购买价格: {currency}{record['purchase_price']}
 {quantity_info}当前价格: {currency}{record['current_price']}
 {change_info}
 {profit_info}
@@ -283,6 +313,10 @@ def generate_stop_loss_report(triggered_records, all_records_data):
             if record.get('quantity'):
                 quantity_info = f"购买数量: {record['quantity']} 股\n"
             
+            holding_days_info = ""
+            if record.get('holding_days') is not None:
+                holding_days_info = f"已持有天数: {record['holding_days']} 天\n"
+            
             change_pct = record.get('change_pct', record['drop_pct'] * -1)
             if change_pct >= 0:
                 change_info = f"涨幅: +{change_pct}%"
@@ -301,7 +335,7 @@ def generate_stop_loss_report(triggered_records, all_records_data):
 ==========================================
 标的: {display_symbol} ({market_name})
 买入日期: {record['purchase_date']}
-购买价格: {currency}{record['purchase_price']}
+{holding_days_info}购买价格: {currency}{record['purchase_price']}
 {quantity_info}当前价格: {currency}{record['current_price']}
 {change_info}
 {profit_info}

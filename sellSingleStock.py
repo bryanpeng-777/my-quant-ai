@@ -3,8 +3,10 @@
 基于MACD死亡交叉分析，检测股票是否应该卖出
 支持美股(US)和港股(HK)
 """
+import json
 import yfinance as yf
 from datetime import datetime
+from pathlib import Path
 import pandas as pd
 from stock_utils import (
     MARKET_US,
@@ -19,6 +21,9 @@ from stock_utils import (
     send_email,
     handle_pipeline_error
 )
+
+# 购买记录文件路径
+PURCHASE_RECORDS_FILE = "purchase_records.json"
 
 # ==========================================
 # 股票代码配置：在此添加要分析的股票代码
@@ -35,6 +40,70 @@ STOCK_CONFIG = {
         "0700",   # 腾讯控股
     ],
 }
+
+def load_purchase_records():
+    """
+    从 purchase_records.json 加载购买记录
+    
+    Returns:
+        购买记录列表，如果文件不存在或为空则返回空列表
+    """
+    if not Path(PURCHASE_RECORDS_FILE).exists():
+        return []
+    
+    try:
+        with open(PURCHASE_RECORDS_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data.get('records', [])
+    except (json.JSONDecodeError, Exception):
+        return []
+
+def get_purchase_info(symbol, market):
+    """
+    获取指定股票的购买信息（取最早买入日期）
+    
+    Args:
+        symbol: 股票代码
+        market: 市场类型
+    
+    Returns:
+        (purchase_date, holding_days): 购买日期和持有天数，未找到返回 (None, None)
+    """
+    records = load_purchase_records()
+    
+    # 查找该股票的所有买入记录
+    stock_records = []
+    for record in records:
+        record_symbol = record.get('symbol', '')
+        # 处理港股代码前导零问题
+        if market == MARKET_HK:
+            # 统一去掉前导零进行比较
+            normalized_record = record_symbol.lstrip('0')
+            normalized_symbol = symbol.lstrip('0')
+            if normalized_record == normalized_symbol:
+                stock_records.append(record)
+        else:
+            if record_symbol.upper() == symbol.upper():
+                stock_records.append(record)
+    
+    if not stock_records:
+        return None, None
+    
+    # 取最早的买入日期
+    earliest_record = min(stock_records, key=lambda x: x.get('purchase_date', '9999-12-31'))
+    purchase_date = earliest_record.get('purchase_date')
+    
+    if not purchase_date:
+        return None, None
+    
+    # 计算持有天数
+    try:
+        purchase_dt = datetime.strptime(purchase_date, "%Y-%m-%d")
+        today = datetime.now()
+        holding_days = (today - purchase_dt).days
+        return purchase_date, holding_days
+    except (ValueError, TypeError):
+        return purchase_date, None
 
 def find_last_death_cross_week(df):
     """
@@ -81,6 +150,9 @@ def check_sell_signal(symbol, market=MARKET_US):
     Returns:
         (should_sell, analysis_data): 是否应该卖出和分析数据
     """
+    # 获取购买信息（持有天数）
+    purchase_date, holding_days = get_purchase_info(symbol, market)
+    
     df = get_stock_data(symbol, market)
     
     if df is None or len(df) < 2:
@@ -89,6 +161,8 @@ def check_sell_signal(symbol, market=MARKET_US):
             "price": None,
             "death_cross_week_low": None,
             "market": market,
+            "purchase_date": purchase_date,
+            "holding_days": holding_days,
         }
     
     # 计算MACD
@@ -119,6 +193,8 @@ def check_sell_signal(symbol, market=MARKET_US):
             "should_sell": False,
             "reason": "未找到死亡交叉点",
             "market": market,
+            "purchase_date": purchase_date,
+            "holding_days": holding_days,
         }
     
     # 检查当前价格是否跌破死亡交叉周的最低价
@@ -136,6 +212,8 @@ def check_sell_signal(symbol, market=MARKET_US):
         "price_drop_pct": round(((current_price - death_cross_week_low) / death_cross_week_low * 100), 2) if death_cross_week_low > 0 else None,
         "reason": "当前价格已跌破死亡交叉周最低价" if should_sell else "当前价格未跌破死亡交叉周最低价",
         "market": market,
+        "purchase_date": purchase_date,
+        "holding_days": holding_days,
     }
 
 def generate_sell_report(stocks_data):
@@ -160,10 +238,17 @@ def generate_sell_report(stocks_data):
         currency = get_currency_symbol(market)
         display_symbol = get_display_symbol(symbol, market)
         
+        # 持有天数信息
+        holding_info = ""
+        if data.get('purchase_date'):
+            holding_info = f"买入日期: {data.get('purchase_date')}\n"
+            if data.get('holding_days') is not None:
+                holding_info += f"已持有天数: {data.get('holding_days')} 天\n"
+        
         stock_info = f"""
 ==========================================
 标的: {display_symbol} ({market_name})
-当前价格: {currency}{data.get('price', 'N/A')}
+{holding_info}当前价格: {currency}{data.get('price', 'N/A')}
 
 死亡交叉分析:
 - 是否找到死亡交叉: {"✅ 是" if data.get('death_cross_found', False) else "❌ 否"}
@@ -242,11 +327,14 @@ def main():
                         display_symbol = get_display_symbol(symbol, market)
                         sell_signals.append(f"{market_name} {display_symbol}")
                         print(f"[{datetime.now()}] 🔴 {market_name} {display_symbol} 触发卖出信号！")
+                        if analysis_data.get('holding_days') is not None:
+                            print(f"[{datetime.now()}]    已持有: {analysis_data.get('holding_days')} 天")
                         print(f"[{datetime.now()}]    当前价格: {currency}{analysis_data.get('price')}")
                         print(f"[{datetime.now()}]    死亡交叉周最低价: {currency}{analysis_data.get('death_cross_week_low')}")
                     else:
                         display_symbol = get_display_symbol(symbol, market)
-                        print(f"[{datetime.now()}] 🟢 {market_name} {display_symbol} 继续持有")
+                        holding_info = f" (已持有: {analysis_data.get('holding_days')}天)" if analysis_data.get('holding_days') is not None else ""
+                        print(f"[{datetime.now()}] 🟢 {market_name} {display_symbol} 继续持有{holding_info}")
                 except Exception as e:
                     error_msg = str(e)
                     print(f"[{datetime.now()}] ⚠️  {market_name} {symbol} 分析失败: {error_msg}")
