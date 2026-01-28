@@ -37,6 +37,7 @@ def analyze_volume_trend(monthly_df):
     规则：
     - 下跌时缩量（正向信号）
     - 上涨时放量（正向信号）
+    - 对比上涨月和下跌月的总成交量
     
     Args:
         monthly_df: 月线数据 DataFrame
@@ -58,13 +59,13 @@ def analyze_volume_trend(monthly_df):
     up_months = recent_10_months[recent_10_months['is_up'] == True]
     down_months = recent_10_months[recent_10_months['is_up'] == False]
     
-    # 计算上涨月的平均成交量
-    avg_up_volume = up_months['Volume'].mean() if len(up_months) > 0 else 0
-    # 计算下跌月的平均成交量
-    avg_down_volume = down_months['Volume'].mean() if len(down_months) > 0 else 0
+    # 计算上涨月的总成交量
+    total_up_volume = up_months['Volume'].sum() if len(up_months) > 0 else 0
+    # 计算下跌月的总成交量
+    total_down_volume = down_months['Volume'].sum() if len(down_months) > 0 else 0
     
-    # 判断是否是正向信号：上涨放量且下跌缩量
-    positive_signal = avg_up_volume > avg_down_volume if avg_up_volume > 0 and avg_down_volume > 0 else False
+    # 判断是否是正向信号：上涨总量 > 下跌总量
+    positive_signal = total_up_volume > total_down_volume if total_up_volume > 0 and total_down_volume > 0 else False
     
     # 计算上涨月中放量的比例
     up_with_volume_increase = 0
@@ -76,14 +77,14 @@ def analyze_volume_trend(monthly_df):
     if len(down_months) > 0:
         down_with_volume_decrease = len(down_months[down_months['volume_change'] < 0]) / len(down_months) * 100
     
-    # 计算量比（上涨量/下跌量）
-    volume_ratio = avg_up_volume / avg_down_volume if avg_down_volume > 0 else 0
+    # 计算量比（上涨总量/下跌总量）
+    volume_ratio = total_up_volume / total_down_volume if total_down_volume > 0 else 0
     
     return {
         "up_months_count": len(up_months),
         "down_months_count": len(down_months),
-        "avg_up_volume": round(avg_up_volume, 0),
-        "avg_down_volume": round(avg_down_volume, 0),
+        "total_up_volume": round(total_up_volume, 0),
+        "total_down_volume": round(total_down_volume, 0),
         "volume_ratio": round(volume_ratio, 2),
         "up_with_volume_increase_pct": round(up_with_volume_increase, 1),
         "down_with_volume_decrease_pct": round(down_with_volume_decrease, 1),
@@ -337,12 +338,12 @@ def generate_index_buy_report(buy_signals, all_records_data):
 量价分析（最近10个月）:
 - 上涨月份数: {vol.get('up_months_count', 'N/A')}
 - 下跌月份数: {vol.get('down_months_count', 'N/A')}
-- 上涨月平均成交量: {vol.get('avg_up_volume', 'N/A')}
-- 下跌月平均成交量: {vol.get('avg_down_volume', 'N/A')}
-- 量比（上涨/下跌）: {vol.get('volume_ratio', 'N/A')}
+- 上涨月总成交量: {vol.get('total_up_volume', 'N/A')}
+- 下跌月总成交量: {vol.get('total_down_volume', 'N/A')}
+- 量比（上涨总量/下跌总量）: {vol.get('volume_ratio', 'N/A')}
 - 上涨放量比例: {vol.get('up_with_volume_increase_pct', 'N/A')}%
 - 下跌缩量比例: {vol.get('down_with_volume_decrease_pct', 'N/A')}%
-- 量价配合: {"🟢 正向信号" if vol.get('positive_signal') else "⚠️ 一般"}
+- 量价配合: {"🟢 正向信号（上涨总量 > 下跌总量）" if vol.get('positive_signal') else "⚠️ 一般"}
 
 买入信号: 🟢 建议买入（满足所有条件）
 ==========================================
@@ -433,7 +434,8 @@ def generate_index_buy_report(buy_signals, all_records_data):
     
     量价分析规则：
     - 上涨放量、下跌缩量是正向信号，表明资金在积极介入
-    - 量比 > 1 表示上涨时的成交量大于下跌时，是健康的量价关系
+    - 量比 > 1 表示上涨月的总成交量大于下跌月的总成交量，是健康的量价关系
+    - 我们对比的是最近10个月中，所有上涨月的总成交量 vs 所有下跌月的总成交量
     
     请根据以上数据写一份专业的邮件报告：
     1. 标题为{title}

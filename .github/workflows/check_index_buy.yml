@@ -1,9 +1,7 @@
 name: Index Buy Signal Monitor Pipeline
 
 on:
-  workflow_dispatch:  # 手动触发
-  schedule:
-    - cron: '0 14 * * 1-5'  # 每周一到周五 UTC 14:00 (北京时间22:00) 执行，美股收盘后
+  workflow_dispatch:  # 手动触发# 每周一到周五 UTC 14:00 (北京时间22:00) 执行，美股收盘后
   push:
     branches:
       - main
