@@ -1,0 +1,22 @@
+{
+  "records": [
+    {
+      "symbol": "VOO",
+      "purchase_price": 450.00,
+      "purchase_date": "2025-06-15",
+      "quantity": 10
+    },
+    {
+      "symbol": "QQQ",
+      "purchase_price": 380.00,
+      "purchase_date": "2025-07-01",
+      "quantity": 5
+    },
+    {
+      "symbol": "SPY",
+      "purchase_price": 520.00,
+      "purchase_date": "2025-08-10",
+      "quantity": 8
+    }
+  ]
+}

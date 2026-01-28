@@ -1,0 +1,37 @@
+name: Index Sell Signal Monitor Pipeline
+
+on:
+  workflow_dispatch:  # 仅手动触发
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'check_index_sell.py'
+      - 'index_holdings.json'
+      - 'stock_utils.py'
+
+jobs:
+  check_index_sell:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Execute Index Sell Signal Check
+        env:
+          # 将 GitHub Secrets 映射到系统环境变量
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_RECEIVER: ${{ secrets.EMAIL_RECEIVER }}
+        run: python check_index_sell.py
