@@ -37,6 +37,7 @@ STOCK_CONFIG = {
         "NTES",   # 网易
         "TSM",    # 台积电
         "NKE",    # 耐克
+        "VOO",    # Vanguard S&P 500 ETF
     ],
     # 港股列表
     MARKET_HK: [
@@ -52,6 +53,7 @@ STOCK_CONFIG = {
         "2015",   # 理想汽车-W
         "2331",   # 李宁
         "2020",   # 安踏体育
+        "02800"
     ],
 }
 
