@@ -57,8 +57,8 @@ STOCK_CONFIG = {
     ],
 }
 
-# 买入规则阈值
-MIN_RULES_PASSED = 6
+# 买入规则阈值：必须全部条件满足才建议买入（共 10 条规则）
+MIN_RULES_PASSED = 10
 
 def generate_ai_report(stocks_data):
     """
