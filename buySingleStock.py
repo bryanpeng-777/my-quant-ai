@@ -60,6 +60,9 @@ STOCK_CONFIG = {
 # 买入规则阈值：必须全部条件满足才建议买入（共 10 条规则）
 MIN_RULES_PASSED = 10
 
+# 需在报告中做详细分析的标的（如盈富基金 2800 作为指数 ETF 需单独展开）
+DETAIL_ANALYSIS_SYMBOLS = {(MARKET_HK, "2800")}  # 盈富基金
+
 def generate_ai_report(stocks_data):
     """
     将多只股票的量化结果喂给 DeepSeek，让它生成专业投研结论
@@ -80,6 +83,8 @@ def generate_ai_report(stocks_data):
         rules_passed = count_rules_passed(data)
         stock_info = format_stock_analysis_text(data, symbol, market)
         stock_info += f"综合结论: {'建议买入' if rules_passed >= MIN_RULES_PASSED else '持续观望'}\n"
+        if (market, symbol) in DETAIL_ANALYSIS_SYMBOLS:
+            stock_info = "【需详细分析】\n" + stock_info
         stocks_analysis.append(stock_info)
     
     all_stocks_text = "\n".join(stocks_analysis)
@@ -118,6 +123,7 @@ def generate_ai_report(stocks_data):
           当前股价是否处于20周线之上：❌
     3. 最后给出所有股票的综合对比分析和投资建议
     4. 注意：美股价格单位为美元($)，港股价格单位为港币(HK$)，请在报告中明确标注
+    5. 对标记为【需详细分析】的标的，请单独做详细分析。例如港股 2800（盈富基金）作为跟踪恒生指数的 ETF，需从以下方面展开：跟踪指数表现、与恒指走势相关性、费率与跟踪误差、当前估值与历史分位、作为核心持仓的配置建议与权重建议等。
     """
     
     return call_deepseek_api(prompt)
