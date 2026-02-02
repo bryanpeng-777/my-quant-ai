@@ -57,8 +57,8 @@ STOCK_CONFIG = {
     ],
 }
 
-# 买入规则阈值：必须全部条件满足才建议买入（共 10 条规则）
-MIN_RULES_PASSED = 10
+# 买入规则阈值：满足至少 8 条规则即建议买入（共 10 条规则）
+MIN_RULES_PASSED = 8
 
 # 需在报告中做详细分析的标的（如盈富基金 2800 作为指数 ETF 需单独展开）
 DETAIL_ANALYSIS_SYMBOLS = {(MARKET_HK, "2800")}  # 盈富基金
