@@ -1,8 +1,10 @@
 """
 持仓总成本与当前总盈亏报告
-从 purchase_records.json 读取买入记录，拉现价，按市场汇总总成本/总市值/总盈亏并邮件通知。
+从 purchase_records.json 读取买入记录（或环境变量 PURCHASE_RECORDS_JSON），
+拉现价，按市场汇总总成本/总市值/总盈亏并邮件通知。
 """
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -22,6 +24,18 @@ PURCHASE_RECORDS_FILE = "purchase_records.json"
 
 
 def load_purchase_records():
+    env_raw = os.environ.get("PURCHASE_RECORDS_JSON", "").strip()
+    if env_raw:
+        try:
+            data = json.loads(env_raw)
+            return data.get("records", [])
+        except json.JSONDecodeError:
+            print(f"[{datetime.now()}] ⚠️  环境变量 PURCHASE_RECORDS_JSON 不是合法 JSON")
+            return []
+        except Exception as e:
+            print(f"[{datetime.now()}] ⚠️  解析 PURCHASE_RECORDS_JSON 时出错: {str(e)}")
+            return []
+
     if not Path(PURCHASE_RECORDS_FILE).exists():
         return []
 
