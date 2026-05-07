@@ -1,14 +1,17 @@
 {
-  // total_investment：按市场「生意总投资」（配置键名不变）；current_total_assets：您维护的「当前总资产」（同币种）。
-  // 报告「投资占比」= 生意总投资 ÷ current_total_assets；可只配 US 数字简写，规则同 total_investment
-replace_all
-false
+  // total_investment：按市场「生意总投资」（配置键名不变）；current_total_assets：名下「配置总资产」（同币种）。
+  // others_assets：他人资产，从 current_total_assets 扣减后再算投资占比；投资占比 = 生意总投资 ÷ (current_total_assets − others_assets)。
+  // 三者均可只配 US 数字简写，规则同 total_investment。
   "total_investment": {
     "US": 50000.00,
     "HK": 0
   },
   "current_total_assets": {
     "US": 120000.00,
+    "HK": 0
+  },
+  "others_assets": {
+    "US": 0,
     "HK": 0
   },
   "records": [

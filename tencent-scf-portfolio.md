@@ -45,7 +45,7 @@ zip 根目录需包含：
 | `EMAIL_SENDER` | QQ 邮箱发件地址 |
 | `EMAIL_PASSWORD` | QQ 邮箱 SMTP 授权码 |
 | `EMAIL_RECEIVER` | 收件人 |
-| `PURCHASE_RECORDS_JSON` | （可选）整段 JSON 字符串，与 `purchase_records.json` 同结构：含 `records`、可选 `total_investment` 与 `current_total_assets`（见 `purchase_records.example.json`）。设置后**优先**于包内文件。注意控制台单变量长度上限。 |
+| `PURCHASE_RECORDS_JSON` | （可选）整段 JSON 字符串，与 `purchase_records.json` 同结构：含 `records`、可选 `total_investment`、`current_total_assets` 与 `others_assets`（见 `purchase_records.example.json`）。设置后**优先**于包内文件。注意控制台单变量长度上限。 |
 
 无需配置 `DEEPSEEK_API_KEY`。
 
