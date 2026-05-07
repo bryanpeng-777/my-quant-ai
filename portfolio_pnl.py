@@ -2,6 +2,7 @@
 持仓总成本与当前总盈亏报告
 从 purchase_records.json 读取买入记录（或环境变量 PURCHASE_RECORDS_JSON），
 拉现价，按市场汇总总成本/总市值/总盈亏并邮件通知。
+输出为表格：逐笔盈亏 + 分市场汇总（仅金额，无百分比）。
 """
 import json
 import os
@@ -55,19 +56,32 @@ def _empty_market_totals():
     return {"total_cost": 0.0, "total_value": 0.0, "total_pnl": 0.0}
 
 
-def format_pct(pnl: float, cost: float) -> str:
-    if cost <= 0:
-        return "不适用（总成本为 0）"
-    return f"{pnl / cost * 100:.2f}%"
+def _fmt_money(cur_sym: str, amount: float, signed: bool = False) -> str:
+    """金额字符串；signed=True 时盈亏显示正负号（正数带 +）。"""
+    if signed:
+        if amount > 0:
+            return f"+{cur_sym}{amount:,.2f}"
+        if amount < 0:
+            return f"-{cur_sym}{abs(amount):,.2f}"
+        return f"{cur_sym}0.00"
+    return f"{cur_sym}{amount:,.2f}"
 
 
-def build_summary_block(aggregates: dict, ts: datetime) -> str:
-    """邮件/控制台顶部的「当前总盈亏」汇总（按市场）。"""
+def _md_table(headers: list[str], rows: list[list[str]]) -> str:
+    """Markdown 管道表，邮件与控制台通用。"""
     lines = [
-        "════════ 当前总盈亏（按市场）════════",
-        f"生成时间: {ts.strftime('%Y-%m-%d %H:%M:%S')}",
-        "",
+        "| " + " | ".join(headers) + " |",
+        "| " + " | ".join("---" for _ in headers) + " |",
     ]
+    for r in rows:
+        lines.append("| " + " | ".join(r) + " |")
+    return "\n".join(lines)
+
+
+def build_summary_table(aggregates: dict, ts: datetime) -> str:
+    """分市场汇总表：总成本、总市值、总盈亏（仅数值）。"""
+    headers = ["市场", "总成本", "当前总市值", "总盈亏"]
+    rows = []
     for market in (MARKET_US, MARKET_HK):
         name = get_market_name(market)
         cur_sym = get_currency_symbol(market)
@@ -75,45 +89,67 @@ def build_summary_block(aggregates: dict, ts: datetime) -> str:
         cost = agg["total_cost"]
         value = agg["total_value"]
         pnl = agg["total_pnl"]
-
-        lines.append(f"【{name}】")
         if cost <= 0 and value <= 0:
-            lines.append(
-                f"  无有效金额汇总（请检查是否填写 quantity，或是否全部取价失败）。"
-            )
+            rows.append([name, "—", "—", "（无有效汇总）"])
         else:
-            lines.append(f"  总成本:     {cur_sym}{cost:,.2f}")
-            lines.append(f"  当前总市值: {cur_sym}{value:,.2f}")
-            sign = "+" if pnl >= 0 else ""
-            lines.append(f"  当前总盈亏: {cur_sym}{sign}{pnl:,.2f}")
-            lines.append(f"  收益率:     {format_pct(pnl, cost)}")
-        lines.append("")
-    lines.append("══════════════════════════════════")
-    return "\n".join(lines)
+            rows.append(
+                [
+                    name,
+                    _fmt_money(cur_sym, cost),
+                    _fmt_money(cur_sym, value),
+                    _fmt_money(cur_sym, pnl, signed=True),
+                ]
+            )
+    title = f"当前总盈亏汇总（按市场）\n生成时间: {ts.strftime('%Y-%m-%d %H:%M:%S')}"
+    return title + "\n\n" + _md_table(headers, rows)
 
 
-def build_detail_lines(rows_ok: list, rows_skip_qty: list, rows_price_fail: list) -> str:
-    lines = ["════════ 买入明细（逐笔）════════", ""]
+def build_position_table(rows_ok: list) -> str:
+    """逐笔持仓表：每只成本、市值、盈亏（仅数值）。"""
+    if not rows_ok:
+        return ""
+    headers = [
+        "#",
+        "市场",
+        "代码",
+        "买入日",
+        "股数",
+        "买入价",
+        "现价",
+        "成本",
+        "市值",
+        "盈亏",
+    ]
+    body_rows = []
+    for r in rows_ok:
+        body_rows.append(
+            [
+                str(r["num"]),
+                r["market"],
+                r["symbol"],
+                r["date"],
+                r["qty"],
+                r["buy"],
+                r["current"],
+                r["cost"],
+                r["value"],
+                r["pnl"],
+            ]
+        )
+    return "逐笔持仓与盈亏\n\n" + _md_table(headers, body_rows)
 
-    if rows_ok:
-        lines.append("--- 已计入汇总 ---")
-        for r in rows_ok:
-            lines.append(r["line"])
-        lines.append("")
 
+def build_notes_block(rows_skip_qty: list, rows_price_fail: list) -> str:
+    parts = []
     if rows_skip_qty:
-        lines.append("--- 未计入汇总（缺少或无效 quantity）---")
-        for r in rows_skip_qty:
-            lines.append(r)
-        lines.append("")
-
+        parts.append("未计入汇总（缺少或无效 quantity / 价格）")
+        parts.extend(f"- {r}" for r in rows_skip_qty)
+        parts.append("")
     if rows_price_fail:
-        lines.append("--- 取价失败 ---")
-        for r in rows_price_fail:
-            lines.append(r)
-        lines.append("")
-
-    return "\n".join(lines)
+        parts.append("取价失败")
+        parts.extend(f"- {r}" for r in rows_price_fail)
+        parts.append("")
+    return "\n".join(parts).strip()
 
 
 def run_report():
@@ -147,51 +183,56 @@ def run_report():
 
         if qty_raw is None or (isinstance(qty_raw, (int, float)) and qty_raw <= 0):
             rows_skip_qty.append(
-                f"  #{i + 1} {mname} {display} 买入日 {purchase_date} "
-                f"价格 {cur_sym}{purchase_price} — 未提供有效 quantity，不参与总盈亏汇总"
+                f"#{i + 1} {mname} {display} 买入日 {purchase_date} "
+                f"买价 {cur_sym}{purchase_price} — 无有效 quantity"
             )
             continue
 
         quantity = float(qty_raw)
         if purchase_price is None:
             rows_skip_qty.append(
-                f"  #{i + 1} {mname} {display} — 缺少 purchase_price，跳过"
+                f"#{i + 1} {mname} {display} — 缺少 purchase_price"
             )
             continue
 
         current_price = get_current_stock_price(symbol, market)
         if current_price is None:
             rows_price_fail.append(
-                f"  #{i + 1} {mname} {display} quantity={quantity:g} — 无法获取现价"
+                f"#{i + 1} {mname} {display} 股数 {quantity:g} — 无法获取现价"
             )
             continue
 
         cost = float(purchase_price) * quantity
         value = current_price * quantity
         pnl = value - cost
-        pct = (current_price - float(purchase_price)) / float(purchase_price) * 100
 
         aggregates[market]["total_cost"] += cost
         aggregates[market]["total_value"] += value
         aggregates[market]["total_pnl"] += pnl
 
-        pnl_sign = "+" if pnl >= 0 else ""
-        pct_sign = "+" if pct >= 0 else ""
         rows_ok.append({
-            "line": (
-                f"  #{i + 1} {mname} {display} | 买入 {purchase_date} | qty {quantity:g}\n"
-                f"      成本 {cur_sym}{cost:,.2f} | 市值 {cur_sym}{value:,.2f} | "
-                f"盈亏 {cur_sym}{pnl_sign}{pnl:,.2f} ({pct_sign}{pct:.2f}%)"
-            )
+            "num": i + 1,
+            "market": mname,
+            "symbol": display,
+            "date": purchase_date,
+            "qty": f"{quantity:g}",
+            "buy": _fmt_money(cur_sym, float(purchase_price)),
+            "current": _fmt_money(cur_sym, current_price),
+            "cost": _fmt_money(cur_sym, cost),
+            "value": _fmt_money(cur_sym, value),
+            "pnl": _fmt_money(cur_sym, pnl, signed=True),
         })
 
-    summary = build_summary_block(aggregates, ts)
-    details = build_detail_lines(rows_ok, rows_skip_qty, rows_price_fail)
-    full_body = summary + "\n" + details
+    summary = build_summary_table(aggregates, ts)
+    position = build_position_table(rows_ok)
+    notes = build_notes_block(rows_skip_qty, rows_price_fail)
 
-    print(f"[{ts}] {summary}")
-    print(details)
+    blocks = [summary, "", position]
+    if notes:
+        blocks.extend(["", "---", "", notes])
+    full_body = "\n".join(blocks)
 
+    print(f"[{ts}]\n{full_body}\n")
     send_email(f"【持仓盈亏】{ts.strftime('%Y-%m-%d')}", full_body)
     print(f"[{ts}] ✅ 持仓盈亏报告已发送至邮箱。")
 
