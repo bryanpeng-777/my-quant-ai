@@ -70,18 +70,18 @@ def check_stop_loss(record):
     注意：同一只股票可能有多次买入，每次买入独立计算止损点
     
     Args:
-        record: 购买记录字典，包含 symbol, purchase_price, purchase_date, quantity(可选)
+        record: 购买记录字典，包含 symbol, purchase_price, quantity(可选)；purchase_date 可选（仅影响持有天数展示）
     
     Returns:
         (triggered, analysis_data): 是否触发止损和分析数据
     """
     symbol = record['symbol']
     purchase_price = record['purchase_price']
-    purchase_date = record['purchase_date']
+    purchase_date = record.get('purchase_date')
     quantity = record.get('quantity', None)  # 购买数量（可选）
     
-    # 计算持有天数
-    holding_days = calculate_holding_days(purchase_date)
+    # 计算持有天数（无买入日则跳过）
+    holding_days = calculate_holding_days(purchase_date) if purchase_date else None
     
     # 自动识别市场类型
     market = detect_market(symbol)
@@ -137,6 +137,16 @@ def check_stop_loss(record):
         "triggered": triggered
     }
 
+def _purchase_date_line_for_report(record):
+    d = record.get("purchase_date")
+    return f"买入日期: {d}\n" if d else ""
+
+
+def _batch_label(record):
+    d = record.get("purchase_date")
+    return f"本次买入（{d}）" if d else "本次买入"
+
+
 def check_all_stop_loss():
     """
     检查所有持仓是否触发止损
@@ -179,7 +189,8 @@ def check_all_stop_loss():
                 display_symbol = get_display_symbol(symbol, market)
                 currency = get_currency_symbol(market)
                 print(f"[{datetime.now()}] 🔴 {market_name} {display_symbol} 触发止损信号！")
-                print(f"[{datetime.now()}]    买入日期: {analysis_data['purchase_date']}")
+                if analysis_data.get("purchase_date"):
+                    print(f"[{datetime.now()}]    买入日期: {analysis_data['purchase_date']}")
                 if analysis_data.get('holding_days') is not None:
                     print(f"[{datetime.now()}]    已持有: {analysis_data['holding_days']} 天")
                 print(f"[{datetime.now()}]    购买价格: {currency}{analysis_data['purchase_price']}")
@@ -206,7 +217,12 @@ def check_all_stop_loss():
                 else:
                     change_info = f"跌幅: {change_pct}%"
                 holding_days_info = f", 已持有: {analysis_data['holding_days']}天" if analysis_data.get('holding_days') is not None else ""
-                print(f"[{datetime.now()}] 🟢 {market_name} {display_symbol} 未触发止损 (买入日期: {analysis_data['purchase_date']}{holding_days_info}, {change_info}{quantity_info})")
+                date_part = (
+                    f"买入日期: {analysis_data['purchase_date']}"
+                    if analysis_data.get("purchase_date")
+                    else "无买入日期字段"
+                )
+                print(f"[{datetime.now()}] 🟢 {market_name} {display_symbol} 未触发止损 ({date_part}{holding_days_info}, {change_info}{quantity_info})")
         
         except Exception as e:
             error_msg = str(e)
@@ -283,13 +299,12 @@ def generate_stop_loss_report(triggered_records, all_records_data):
             stock_info = f"""
 ==========================================
 标的: {display_symbol} ({market_name})
-买入日期: {record['purchase_date']}
-{holding_days_info}购买价格: {currency}{record['purchase_price']}
+{_purchase_date_line_for_report(record)}{holding_days_info}购买价格: {currency}{record['purchase_price']}
 {quantity_info}当前价格: {currency}{record['current_price']}
 {change_info}
 {profit_info}
 止损信号: 🔴 触发止损（跌幅 >= {STOP_LOSS_THRESHOLD}%）
-说明: 本次买入（{record['purchase_date']}）的止损点已触发，建议卖出本次买入的持仓
+说明: {_batch_label(record)}的止损点已触发，建议卖出本次买入的持仓
 ==========================================
 """
             stocks_analysis.append(stock_info)
@@ -334,13 +349,12 @@ def generate_stop_loss_report(triggered_records, all_records_data):
             stock_info = f"""
 ==========================================
 标的: {display_symbol} ({market_name})
-买入日期: {record['purchase_date']}
-{holding_days_info}购买价格: {currency}{record['purchase_price']}
+{_purchase_date_line_for_report(record)}{holding_days_info}购买价格: {currency}{record['purchase_price']}
 {quantity_info}当前价格: {currency}{record['current_price']}
 {change_info}
 {profit_info}
 止损信号: 🟢 未触发止损（跌幅 < {STOP_LOSS_THRESHOLD}%）
-说明: 本次买入（{record['purchase_date']}）的止损点未触发，可继续持有
+说明: {_batch_label(record)}的止损点未触发，可继续持有
 ==========================================
 """
             stocks_analysis.append(stock_info)
@@ -391,7 +405,7 @@ def generate_stop_loss_report(triggered_records, all_records_data):
        如果当前价格是138元，那么第一次买入触发止损，第二次买入未触发。
     3. 对触发止损的记录：
        a. 首先列出当前关键值的数值，方便我去对比数据的正确性
-       b. 说明买入日期、购买价格、购买数量（如有）、当前价格
+       b. 说明购买价格、购买数量（如有）、当前价格；若数据中含买入日期可一并说明
        c. 说明跌幅百分比和亏损金额（如有）
        d. 明确说明本次买入已触发止损条件（跌幅 >= {STOP_LOSS_THRESHOLD}%）
        e. 给出明确的卖出建议（卖出本次买入的持仓数量）
@@ -399,7 +413,7 @@ def generate_stop_loss_report(triggered_records, all_records_data):
        a. 简要说明当前状态
        b. 说明距离止损点还有多少空间
     5. 最后给出所有持仓的综合分析和操作建议
-    6. 如果有触发止损的记录，特别强调需要立即卖出的股票和对应的买入日期
+    6. 如果有触发止损的记录，特别强调需要立即卖出的股票；若某某条记录带买入日期可用来区分批次
     7. 注意：美股价格单位为美元($)，港股价格单位为港币(HK$)，请在报告中明确标注
     8. 本次监控共检查 {total_records} 条买入记录，其中 {len(triggered_records)} 条触发止损，{non_triggered_count} 条未触发
     """

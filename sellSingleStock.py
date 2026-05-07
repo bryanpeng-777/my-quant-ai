@@ -60,7 +60,7 @@ def load_purchase_records():
 
 def get_purchase_info(symbol, market):
     """
-    获取指定股票的购买信息（取最早买入日期）
+    获取指定股票的购买信息（取最早买入日期，若记录均未配置 purchase_date 则返回 None, None）
     
     Args:
         symbol: 股票代码

@@ -112,7 +112,6 @@ def build_position_table(rows_ok: list) -> str:
         "#",
         "市场",
         "代码",
-        "买入日",
         "股数",
         "买入价",
         "现价",
@@ -127,7 +126,6 @@ def build_position_table(rows_ok: list) -> str:
                 str(r["num"]),
                 r["market"],
                 r["symbol"],
-                r["date"],
                 r["qty"],
                 r["buy"],
                 r["current"],
@@ -173,7 +171,6 @@ def run_report():
     for i, record in enumerate(records):
         symbol = record.get("symbol", "")
         purchase_price = record.get("purchase_price")
-        purchase_date = record.get("purchase_date", "")
         qty_raw = record.get("quantity")
 
         market = detect_market(symbol)
@@ -183,8 +180,7 @@ def run_report():
 
         if qty_raw is None or (isinstance(qty_raw, (int, float)) and qty_raw <= 0):
             rows_skip_qty.append(
-                f"#{i + 1} {mname} {display} 买入日 {purchase_date} "
-                f"买价 {cur_sym}{purchase_price} — 无有效 quantity"
+                f"#{i + 1} {mname} {display} 买价 {cur_sym}{purchase_price} — 无有效 quantity"
             )
             continue
 
@@ -214,7 +210,6 @@ def run_report():
             "num": i + 1,
             "market": mname,
             "symbol": display,
-            "date": purchase_date,
             "qty": f"{quantity:g}",
             "buy": _fmt_money(cur_sym, float(purchase_price)),
             "current": _fmt_money(cur_sym, current_price),
