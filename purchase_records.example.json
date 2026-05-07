@@ -1,4 +1,14 @@
 {
+  // total_investment：按市场「总投资」；current_total_assets：您维护的「当前总资产」（同币种）。
+  // 报告「投资占比」= 总投资 ÷ current_total_assets；可只配 US 数字简写，规则同 total_investment
+  "total_investment": {
+    "US": 50000.00,
+    "HK": 0
+  },
+  "current_total_assets": {
+    "US": 120000.00,
+    "HK": 0
+  },
   "records": [
     // 美股示例：股票代码为字母组合（如 AAPL, GOOGL, TSLA）
     // 同一只股票可以有多次买入，每次买入独立计算止损

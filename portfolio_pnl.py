@@ -1,8 +1,8 @@
 """
 持仓总成本与当前总盈亏报告
-从 purchase_records.json 读取买入记录（或环境变量 PURCHASE_RECORDS_JSON），
-拉现价，按市场汇总总成本/总市值/总盈亏并邮件通知。
-邮件：multipart（HTML 表格 + 纯文本卡片），便于手机/企业微信阅读；控制台输出纯文本卡片。
+从 purchase_records.json 读取：`records` 逐笔；可选 `total_investment`、`current_total_assets`（按市场）。
+汇总行：总盈亏 = 当前总市值 − 总投资；另有「投资占比」= 总投资 ÷ 配置的当前总资产（按市场）。
+逐笔明细盈亏仍按买入价×数量与现价计算。
 """
 import html
 import json
@@ -25,32 +25,97 @@ from stock_utils import (
 PURCHASE_RECORDS_FILE = "purchase_records.json"
 
 
-def load_purchase_records():
+def _parse_total_investment(data: dict) -> dict:
+    """
+    从配置根节点解析「总投资」。
+    - total_investment: { "US": number, "HK": number } 分市场，单位与该市场货币一致
+    - total_investment: number — 简写，视为美股（US）总投资美元
+    未配置或无法解析的市场返回 None，汇总时该市场仍用逐笔成本合计。
+    """
+    out = {MARKET_US: None, MARKET_HK: None}
+    raw = data.get("total_investment")
+    if raw is None:
+        return out
+    try:
+        if isinstance(raw, (int, float)):
+            out[MARKET_US] = float(raw)
+            return out
+        if isinstance(raw, dict):
+            if raw.get("US") is not None:
+                out[MARKET_US] = float(raw["US"])
+            if raw.get("HK") is not None:
+                out[MARKET_HK] = float(raw["HK"])
+            return out
+    except (TypeError, ValueError):
+        print(f"[{datetime.now()}] ⚠️  total_investment 格式无效，将忽略")
+    return {MARKET_US: None, MARKET_HK: None}
+
+
+def _parse_current_total_assets(data: dict) -> dict:
+    """
+    「当前总资产」配置，与 total_investment 相同写法：
+    - current_total_assets: { "US": n, "HK": n }；或单独数字视作 US。
+    未配置的市场为 None。
+    """
+    out = {MARKET_US: None, MARKET_HK: None}
+    raw = data.get("current_total_assets")
+    if raw is None:
+        return out
+    try:
+        if isinstance(raw, (int, float)):
+            out[MARKET_US] = float(raw)
+            return out
+        if isinstance(raw, dict):
+            if raw.get("US") is not None:
+                out[MARKET_US] = float(raw["US"])
+            if raw.get("HK") is not None:
+                out[MARKET_HK] = float(raw["HK"])
+            return out
+    except (TypeError, ValueError):
+        print(f"[{datetime.now()}] ⚠️  current_total_assets 格式无效，将忽略")
+    return {MARKET_US: None, MARKET_HK: None}
+
+
+def load_portfolio_source():
+    """返回 (records, total_investment_by_market, current_total_assets_by_market)。"""
+    empty_inv = {MARKET_US: None, MARKET_HK: None}
     env_raw = os.environ.get("PURCHASE_RECORDS_JSON", "").strip()
     if env_raw:
         try:
             data = json.loads(env_raw)
-            return data.get("records", [])
+            if not isinstance(data, dict):
+                return [], empty_inv.copy(), empty_inv.copy()
+            return (
+                data.get("records", []),
+                _parse_total_investment(data),
+                _parse_current_total_assets(data),
+            )
         except json.JSONDecodeError:
             print(f"[{datetime.now()}] ⚠️  环境变量 PURCHASE_RECORDS_JSON 不是合法 JSON")
-            return []
+            return [], empty_inv.copy(), empty_inv.copy()
         except Exception as e:
             print(f"[{datetime.now()}] ⚠️  解析 PURCHASE_RECORDS_JSON 时出错: {str(e)}")
-            return []
+            return [], empty_inv.copy(), empty_inv.copy()
 
     if not Path(PURCHASE_RECORDS_FILE).exists():
-        return []
+        return [], empty_inv.copy(), empty_inv.copy()
 
     try:
         with open(PURCHASE_RECORDS_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-            return data.get("records", [])
+        if not isinstance(data, dict):
+            return [], empty_inv.copy(), empty_inv.copy()
+        return (
+            data.get("records", []),
+            _parse_total_investment(data),
+            _parse_current_total_assets(data),
+        )
     except json.JSONDecodeError:
         print(f"[{datetime.now()}] ⚠️  警告: {PURCHASE_RECORDS_FILE} 文件格式错误")
-        return []
+        return [], empty_inv.copy(), empty_inv.copy()
     except Exception as e:
         print(f"[{datetime.now()}] ⚠️  加载购买记录时出错: {str(e)}")
-        return []
+        return [], empty_inv.copy(), empty_inv.copy()
 
 
 def _empty_market_totals():
@@ -72,23 +137,32 @@ def _h(s) -> str:
     return html.escape(str(s), quote=True)
 
 
-def _summary_rows(aggregates: dict) -> list[list[str]]:
-    """每个元素: [市场, 总成本, 总市值, 总盈亏] 显示串。"""
+def _summary_rows(aggregates: dict, investment_override: dict) -> list[list[str]]:
+    """
+    每个元素: [市场, 总投资, 当前总市值, 总盈亏]。
+    总盈亏 = 当前总市值 − 总投资；总投资优先取配置 total_investment，否则为逐笔买入成本合计。
+    """
     rows = []
     for market in (MARKET_US, MARKET_HK):
         name = get_market_name(market)
         cur_sym = get_currency_symbol(market)
         agg = aggregates[market]
-        cost = agg["total_cost"]
+        summed_cost = agg["total_cost"]
         value = agg["total_value"]
-        pnl = agg["total_pnl"]
-        if cost <= 0 and value <= 0:
+        cfg_inv = investment_override.get(market)
+        if cfg_inv is not None:
+            investment = cfg_inv
+            pnl = value - investment
+        else:
+            investment = summed_cost
+            pnl = value - summed_cost
+        if summed_cost <= 0 and value <= 0:
             rows.append([name, "—", "—", "（无有效汇总）"])
         else:
             rows.append(
                 [
                     name,
-                    _fmt_money(cur_sym, cost),
+                    _fmt_money(cur_sym, investment),
                     _fmt_money(cur_sym, value),
                     _fmt_money(cur_sym, pnl, signed=True),
                 ]
@@ -96,7 +170,65 @@ def _summary_rows(aggregates: dict) -> list[list[str]]:
     return rows
 
 
-def build_plain_report(ts: datetime, aggregates: dict, rows_ok: list, notes: str) -> str:
+def _summary_footnote(investment_override: dict) -> str:
+    if investment_override.get(MARKET_US) is None and investment_override.get(MARKET_HK) is None:
+        return (
+            "说明：汇总「总投资」未在配置中填写时，等于各笔买入成本合计；"
+            "总盈亏=总市值−该值。逐笔明细盈亏仍按买入价与现价计算，不受此影响。"
+        )
+    return (
+        "说明：汇总「总盈亏」= 当前总市值 − 配置项 total_investment（按市场）；"
+        "逐笔明细盈亏仍按买入价与现价计算，不受此影响。"
+    )
+
+
+def _effective_investment(aggregates: dict, investment_override: dict, market: str) -> float:
+    agg = aggregates[market]
+    summed_cost = agg["total_cost"]
+    cfg_inv = investment_override.get(market)
+    return cfg_inv if cfg_inv is not None else summed_cost
+
+
+def _ratio_footnote() -> str:
+    return (
+        "说明：「投资占比」= 汇总口径下的总投资 ÷ 您在配置中填写的 current_total_assets（同市场同币种）；"
+        "与股票市值无关，反映总投资在您自报总资产中的占比。"
+    )
+
+
+def _investment_ratio_rows(aggregates: dict, investment_override: dict, assets_override: dict) -> list[tuple]:
+    """
+    每个有「当前总资产」配置且分母>0的市场一行：
+    (市场名, 货币符号, 总投资数值, 总资产数值, 占比字符串如 43.11%)
+    """
+    rows = []
+    for market in (MARKET_US, MARKET_HK):
+        assets = assets_override.get(market)
+        if assets is None or assets <= 0:
+            continue
+        agg = aggregates[market]
+        summed_cost = agg["total_cost"]
+        value = agg["total_value"]
+        if summed_cost <= 0 and value <= 0:
+            continue
+        name = get_market_name(market)
+        cur_sym = get_currency_symbol(market)
+        inv = _effective_investment(aggregates, investment_override, market)
+        pct = (inv / assets) * 100.0
+        rows.append(
+            (name, cur_sym, inv, assets, f"{pct:.2f}%")
+        )
+    return rows
+
+
+def build_plain_report(
+    ts: datetime,
+    aggregates: dict,
+    investment_override: dict,
+    assets_override: dict,
+    rows_ok: list,
+    notes: str,
+) -> str:
     """窄屏友好的纯文本：汇总块 + 每只股票单独一块。"""
     lines = [
         "【持仓盈亏】",
@@ -104,12 +236,30 @@ def build_plain_report(ts: datetime, aggregates: dict, rows_ok: list, notes: str
         "",
         "════════ 按市场汇总 ════════",
     ]
-    for row in _summary_rows(aggregates):
-        m, c, v, p = row
+    for row in _summary_rows(aggregates, investment_override):
+        m, inv, v, p = row
         lines.append(f"{m}")
-        lines.append(f"  总成本       {c}")
+        lines.append(f"  总投资       {inv}")
         lines.append(f"  当前总市值   {v}")
         lines.append(f"  总盈亏       {p}")
+        lines.append("")
+    lines.append(_summary_footnote(investment_override))
+    lines.append("")
+
+    ratio_rows = _investment_ratio_rows(aggregates, investment_override, assets_override)
+    if ratio_rows:
+        lines.append("════════ 投资占比（总投资 ÷ 当前总资产）════════")
+        lines.append(_ratio_footnote())
+        lines.append("")
+        for name, cur_sym, inv, assets, pct_s in ratio_rows:
+            lines.append(f"{name}")
+            lines.append(f"  总投资       {_fmt_money(cur_sym, inv)}")
+            lines.append(f"  当前总资产   {_fmt_money(cur_sym, assets)}")
+            lines.append(f"  投资占比     {pct_s}")
+            lines.append("")
+    elif assets_override.get(MARKET_US) or assets_override.get(MARKET_HK):
+        lines.append("════════ 投资占比 ════════")
+        lines.append("已配置 current_total_assets，但无对应市场的有效持仓汇总，本节暂无数据。")
         lines.append("")
 
     if rows_ok:
@@ -131,9 +281,16 @@ def build_plain_report(ts: datetime, aggregates: dict, rows_ok: list, notes: str
     return "\n".join(lines)
 
 
-def build_html_report(ts: datetime, aggregates: dict, rows_ok: list, notes: str) -> str:
+def build_html_report(
+    ts: datetime,
+    aggregates: dict,
+    investment_override: dict,
+    assets_override: dict,
+    rows_ok: list,
+    notes: str,
+) -> str:
     """HTML 表格，手机邮箱可直接渲染为表。"""
-    sum_rows = _summary_rows(aggregates)
+    sum_rows = _summary_rows(aggregates, investment_override)
     sum_tr = "".join(
         "<tr><td class=\"txt\">{}</td><td class=\"num\">{}</td>"
         "<td class=\"num\">{}</td><td class=\"num pnl\">{}</td></tr>".format(
@@ -172,6 +329,36 @@ def build_html_report(ts: datetime, aggregates: dict, rows_ok: list, notes: str)
     else:
         pos_block = ""
 
+    ratio_rows = _investment_ratio_rows(aggregates, investment_override, assets_override)
+    if ratio_rows:
+        rtr = "".join(
+            "<tr><td class=\"txt\">{}</td><td class=\"num\">{}</td>"
+            "<td class=\"num\">{}</td><td class=\"num\">{}</td></tr>".format(
+                _h(nm),
+                _h(_fmt_money(cur_sym, inv)),
+                _h(_fmt_money(cur_sym, ast)),
+                _h(pct_s),
+            )
+            for nm, cur_sym, inv, ast, pct_s in ratio_rows
+        )
+        ratio_block = """
+<h2>投资占比（总投资 ÷ 当前总资产）</h2>
+<p class="note2">{}</p>
+<table>
+<thead><tr>
+<th class="txt">市场</th><th class="num">总投资</th><th class="num">当前总资产</th><th class="num">投资占比</th>
+</tr></thead>
+<tbody>{}</tbody>
+</table>
+""".format(_h(_ratio_footnote()), rtr)
+    elif assets_override.get(MARKET_US) or assets_override.get(MARKET_HK):
+        ratio_block = (
+            "<h2>投资占比</h2>"
+            "<p class=\"note2\">已配置 current_total_assets，但无对应市场的有效持仓汇总，本节暂无数据。</p>"
+        )
+    else:
+        ratio_block = ""
+
     notes_html = ""
     if notes:
         notes_html = "<div class=\"notes\"><pre style=\"white-space:pre-wrap;margin:0;\">{}</pre></div>".format(
@@ -200,18 +387,21 @@ th.sym {{ text-align: left; }}
 th.num {{ text-align: right; }}
 .pnl {{ font-weight: 600; }}
 .notes {{ margin-top: 20px; font-size: 13px; color: #555; }}
+.note2 {{ font-size: 12px; color: #666; margin: 8px 0 14px; line-height: 1.45; }}
 </style>
 </head>
 <body>
 <h1>持仓盈亏</h1>
 <p class="meta">生成时间：{_h(ts.strftime("%Y-%m-%d %H:%M:%S"))}</p>
 <h2>按市场汇总</h2>
+<p class="note2">{_h(_summary_footnote(investment_override))}</p>
 <table>
 <thead><tr>
-<th class="txt">市场</th><th class="num">总成本</th><th class="num">当前总市值</th><th class="num">总盈亏</th>
+<th class="txt">市场</th><th class="num">总投资</th><th class="num">当前总市值</th><th class="num">总盈亏</th>
 </tr></thead>
 <tbody>{sum_tr}</tbody>
 </table>
+{ratio_block}
 {pos_block}
 {notes_html}
 </body>
@@ -234,7 +424,7 @@ def build_notes_block(rows_skip_qty: list, rows_price_fail: list) -> str:
 
 def run_report():
     ts = datetime.now()
-    records = load_purchase_records()
+    records, investment_override, assets_override = load_portfolio_source()
 
     aggregates = {MARKET_US: _empty_market_totals(), MARKET_HK: _empty_market_totals()}
     rows_ok = []
@@ -286,7 +476,7 @@ def run_report():
 
         aggregates[market]["total_cost"] += cost
         aggregates[market]["total_value"] += value
-        aggregates[market]["total_pnl"] += pnl
+        aggregates[market]["total_pnl"] += pnl  # 仅备用；汇总盈亏以总市值−总投资为准
 
         rows_ok.append({
             "num": i + 1,
@@ -301,8 +491,12 @@ def run_report():
         })
 
     notes = build_notes_block(rows_skip_qty, rows_price_fail)
-    plain = build_plain_report(ts, aggregates, rows_ok, notes)
-    html_doc = build_html_report(ts, aggregates, rows_ok, notes)
+    plain = build_plain_report(
+        ts, aggregates, investment_override, assets_override, rows_ok, notes
+    )
+    html_doc = build_html_report(
+        ts, aggregates, investment_override, assets_override, rows_ok, notes
+    )
 
     print(f"[{ts}]\n{plain}\n")
     send_email(f"【持仓盈亏】{ts.strftime('%Y-%m-%d')}", plain, html_body=html_doc)
