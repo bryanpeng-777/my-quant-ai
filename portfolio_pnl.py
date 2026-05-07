@@ -1,7 +1,7 @@
 """
 持仓总成本与当前总盈亏报告
 从 purchase_records.json 读取：`records` 逐笔；可选 `total_investment`、`current_total_assets`（按市场）。
-汇总行：总盈亏 = 当前总市值 − 总投资；另有「投资占比」= 总投资 ÷ 配置的当前总资产（按市场）。
+汇总行：总盈亏 = 当前总市值 − 生意总投资；另有「投资占比」= 生意总投资 ÷ 配置的当前总资产（按市场）。
 逐笔明细盈亏仍按买入价×数量与现价计算。
 """
 import html
@@ -27,9 +27,9 @@ PURCHASE_RECORDS_FILE = "purchase_records.json"
 
 def _parse_total_investment(data: dict) -> dict:
     """
-    从配置根节点解析「总投资」。
+    从配置根节点解析「生意总投资」。
     - total_investment: { "US": number, "HK": number } 分市场，单位与该市场货币一致
-    - total_investment: number — 简写，视为美股（US）总投资美元
+    - total_investment: number — 简写，视为美股（US）生意总投资美元
     未配置或无法解析的市场返回 None，汇总时该市场仍用逐笔成本合计。
     """
     out = {MARKET_US: None, MARKET_HK: None}
@@ -139,8 +139,8 @@ def _h(s) -> str:
 
 def _summary_rows(aggregates: dict, investment_override: dict) -> list[list[str]]:
     """
-    每个元素: [市场, 总投资, 当前总市值, 总盈亏]。
-    总盈亏 = 当前总市值 − 总投资；总投资优先取配置 total_investment，否则为逐笔买入成本合计。
+    每个元素: [市场, 生意总投资, 当前总市值, 总盈亏]。
+    总盈亏 = 当前总市值 − 生意总投资；生意总投资优先取配置 total_investment，否则为逐笔买入成本合计。
     """
     rows = []
     for market in (MARKET_US, MARKET_HK):
@@ -173,7 +173,7 @@ def _summary_rows(aggregates: dict, investment_override: dict) -> list[list[str]
 def _summary_footnote(investment_override: dict) -> str:
     if investment_override.get(MARKET_US) is None and investment_override.get(MARKET_HK) is None:
         return (
-            "说明：汇总「总投资」未在配置中填写时，等于各笔买入成本合计；"
+            "说明：汇总「生意总投资」未在配置中填写时，等于各笔买入成本合计；"
             "总盈亏=总市值−该值。逐笔明细盈亏仍按买入价与现价计算，不受此影响。"
         )
     return (
@@ -191,15 +191,15 @@ def _effective_investment(aggregates: dict, investment_override: dict, market: s
 
 def _ratio_footnote() -> str:
     return (
-        "说明：「投资占比」= 汇总口径下的总投资 ÷ 您在配置中填写的 current_total_assets（同市场同币种）；"
-        "与股票市值无关，反映总投资在您自报总资产中的占比。"
+        "说明：「投资占比」= 汇总口径下的生意总投资 ÷ 您在配置中填写的 current_total_assets（同市场同币种）；"
+        "与股票市值无关，反映生意总投资在您自报总资产中的占比。"
     )
 
 
 def _investment_ratio_rows(aggregates: dict, investment_override: dict, assets_override: dict) -> list[tuple]:
     """
     每个有「当前总资产」配置且分母>0的市场一行：
-    (市场名, 货币符号, 总投资数值, 总资产数值, 占比字符串如 43.11%)
+    (市场名, 货币符号, 生意总投资数值, 总资产数值, 占比字符串如 43.11%)
     """
     rows = []
     for market in (MARKET_US, MARKET_HK):
@@ -239,7 +239,7 @@ def build_plain_report(
     for row in _summary_rows(aggregates, investment_override):
         m, inv, v, p = row
         lines.append(f"{m}")
-        lines.append(f"  总投资       {inv}")
+        lines.append(f"  生意总投资       {inv}")
         lines.append(f"  当前总市值   {v}")
         lines.append(f"  总盈亏       {p}")
         lines.append("")
@@ -248,12 +248,12 @@ def build_plain_report(
 
     ratio_rows = _investment_ratio_rows(aggregates, investment_override, assets_override)
     if ratio_rows:
-        lines.append("════════ 投资占比（总投资 ÷ 当前总资产）════════")
+        lines.append("════════ 投资占比（生意总投资 ÷ 当前总资产）════════")
         lines.append(_ratio_footnote())
         lines.append("")
         for name, cur_sym, inv, assets, pct_s in ratio_rows:
             lines.append(f"{name}")
-            lines.append(f"  总投资       {_fmt_money(cur_sym, inv)}")
+            lines.append(f"  生意总投资       {_fmt_money(cur_sym, inv)}")
             lines.append(f"  当前总资产   {_fmt_money(cur_sym, assets)}")
             lines.append(f"  投资占比     {pct_s}")
             lines.append("")
@@ -342,11 +342,11 @@ def build_html_report(
             for nm, cur_sym, inv, ast, pct_s in ratio_rows
         )
         ratio_block = """
-<h2>投资占比（总投资 ÷ 当前总资产）</h2>
+<h2>投资占比（生意总投资 ÷ 当前总资产）</h2>
 <p class="note2">{}</p>
 <table>
 <thead><tr>
-<th class="txt">市场</th><th class="num">总投资</th><th class="num">当前总资产</th><th class="num">投资占比</th>
+<th class="txt">市场</th><th class="num">生意总投资</th><th class="num">当前总资产</th><th class="num">投资占比</th>
 </tr></thead>
 <tbody>{}</tbody>
 </table>
@@ -397,7 +397,7 @@ th.num {{ text-align: right; }}
 <p class="note2">{_h(_summary_footnote(investment_override))}</p>
 <table>
 <thead><tr>
-<th class="txt">市场</th><th class="num">总投资</th><th class="num">当前总市值</th><th class="num">总盈亏</th>
+<th class="txt">市场</th><th class="num">生意总投资</th><th class="num">当前总市值</th><th class="num">总盈亏</th>
 </tr></thead>
 <tbody>{sum_tr}</tbody>
 </table>
@@ -476,7 +476,7 @@ def run_report():
 
         aggregates[market]["total_cost"] += cost
         aggregates[market]["total_value"] += value
-        aggregates[market]["total_pnl"] += pnl  # 仅备用；汇总盈亏以总市值−总投资为准
+        aggregates[market]["total_pnl"] += pnl  # 仅备用；汇总盈亏以总市值−生意总投资为准
 
         rows_ok.append({
             "num": i + 1,
