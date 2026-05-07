@@ -1,7 +1,7 @@
 """
 持仓总成本与当前总盈亏报告
 从 purchase_records.json 读取：`records` 逐笔；可选 `total_investment`、`current_total_assets`（按市场）。
-汇总行：总盈亏 = 当前总市值 − 生意总投资；另有「投资占比」= 生意总投资 ÷ 配置的当前总资产（按市场）。
+汇总行：本轮生意盈亏 = 当前总市值 − 生意总投资；另有「投资占比」= 生意总投资 ÷ 配置的当前总资产（按市场）。
 逐笔明细盈亏仍按买入价×数量与现价计算。
 """
 import html
@@ -139,8 +139,8 @@ def _h(s) -> str:
 
 def _summary_rows(aggregates: dict, investment_override: dict) -> list[list[str]]:
     """
-    每个元素: [市场, 生意总投资, 当前总市值, 总盈亏]。
-    总盈亏 = 当前总市值 − 生意总投资；生意总投资优先取配置 total_investment，否则为逐笔买入成本合计。
+    每个元素: [市场, 生意总投资, 当前总市值, 本轮生意盈亏]。
+    本轮生意盈亏 = 当前总市值 − 生意总投资；生意总投资优先取配置 total_investment，否则为逐笔买入成本合计。
     """
     rows = []
     for market in (MARKET_US, MARKET_HK):
@@ -174,10 +174,10 @@ def _summary_footnote(investment_override: dict) -> str:
     if investment_override.get(MARKET_US) is None and investment_override.get(MARKET_HK) is None:
         return (
             "说明：汇总「生意总投资」未在配置中填写时，等于各笔买入成本合计；"
-            "总盈亏=总市值−该值。逐笔明细盈亏仍按买入价与现价计算，不受此影响。"
+            "本轮生意盈亏=总市值−该值。逐笔明细盈亏仍按买入价与现价计算，不受此影响。"
         )
     return (
-        "说明：汇总「总盈亏」= 当前总市值 − 配置项 total_investment（按市场）；"
+        "说明：汇总「本轮生意盈亏」= 当前总市值 − 配置项 total_investment（按市场）；"
         "逐笔明细盈亏仍按买入价与现价计算，不受此影响。"
     )
 
@@ -241,7 +241,7 @@ def build_plain_report(
         lines.append(f"{m}")
         lines.append(f"  生意总投资       {inv}")
         lines.append(f"  当前总市值   {v}")
-        lines.append(f"  总盈亏       {p}")
+        lines.append(f"  本轮生意盈亏   {p}")
         lines.append("")
     lines.append(_summary_footnote(investment_override))
     lines.append("")
@@ -397,7 +397,7 @@ th.num {{ text-align: right; }}
 <p class="note2">{_h(_summary_footnote(investment_override))}</p>
 <table>
 <thead><tr>
-<th class="txt">市场</th><th class="num">生意总投资</th><th class="num">当前总市值</th><th class="num">总盈亏</th>
+<th class="txt">市场</th><th class="num">生意总投资</th><th class="num">当前总市值</th><th class="num">本轮生意盈亏</th>
 </tr></thead>
 <tbody>{sum_tr}</tbody>
 </table>
@@ -476,7 +476,7 @@ def run_report():
 
         aggregates[market]["total_cost"] += cost
         aggregates[market]["total_value"] += value
-        aggregates[market]["total_pnl"] += pnl  # 仅备用；汇总盈亏以总市值−生意总投资为准
+        aggregates[market]["total_pnl"] += pnl  # 仅备用；汇总本轮生意盈亏以总市值−生意总投资为准
 
         rows_ok.append({
             "num": i + 1,
