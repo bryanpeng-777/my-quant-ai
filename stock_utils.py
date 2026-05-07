@@ -442,14 +442,15 @@ def call_deepseek_api(prompt, api_key=None):
 # ==========================================
 # 邮件发送
 # ==========================================
-def send_email(subject, body, config=None):
+def send_email(subject, body, config=None, html_body=None):
     """
     通过 SMTP 发送邮件（QQ邮箱）
     
     Args:
         subject: 邮件主题
-        body: 邮件正文
+        body: 邮件正文（纯文本，作为 multipart/alternative 中的 text/plain）
         config: 配置字典（可选，默认从环境变量获取）
+        html_body: 可选 HTML 正文；若提供则与 body 组成 multipart/alternative，兼容支持 HTML 的客户端
     """
     if config is None:
         config = get_config()
@@ -462,10 +463,15 @@ def send_email(subject, body, config=None):
         raise ValueError("邮件配置不完整，请检查环境变量：EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER")
     
     msg = EmailMessage()
-    msg.set_content(body)
-    msg['Subject'] = subject
-    msg['From'] = sender_email
-    msg['To'] = receiver_email
+    msg["Subject"] = subject
+    msg["From"] = sender_email
+    msg["To"] = receiver_email
+
+    if html_body:
+        msg.set_content(body, charset="utf-8")
+        msg.add_alternative(html_body, subtype="html", charset="utf-8")
+    else:
+        msg.set_content(body)
 
     try:
         with smtplib.SMTP_SSL('smtp.qq.com', 465) as smtp:
