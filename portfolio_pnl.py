@@ -10,7 +10,6 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 from stock_utils import (
     MARKET_US,
@@ -22,10 +21,6 @@ from stock_utils import (
     get_market_name,
     send_email,
     handle_pipeline_error,
-    get_graham_bond_yield_pct,
-    get_operating_eps_ttm,
-    get_net_income_cagr_5y_pct,
-    graham_implied_growth_pct,
 )
 
 PURCHASE_RECORDS_FILE = "purchase_records.json"
@@ -174,27 +169,6 @@ def _h(s) -> str:
     return html.escape(str(s), quote=True)
 
 
-def _fmt_pct_cell(val: Optional[float]) -> str:
-    if val is None:
-        return "—"
-    return f"{float(val):.2f}%"
-
-
-def _graham_position_footnote(bond_yield_pct: Optional[float]) -> str:
-    y_part = (
-        f"当日用于计算的债收益率 Y={bond_yield_pct:.4f}%（优先环境变量 GRAHAM_BOND_YIELD_PCT，否则尝试 Yahoo 的 AAA 序列并以 ^TNX 为兜底）。"
-        if bond_yield_pct is not None
-        else "当日未能取得债收益率 Y（可配置环境变量 GRAHAM_BOND_YIELD_PCT），隐含增长率列为「—」。"
-    )
-    return (
-        "格雷厄姆隐含增长率：g=[(P×Y)/(营业EPS×4.4)−8.5]/2；"
-        "营业 EPS 为最近四季度营业利润合计÷总股本（缺季报时用最近财年营业利润÷股本）。"
-        + y_part
-        + "港股与美股均使用同一 Y 口径，便于横向对比。"
-        "实际增长率：最近五个完整财年净利润的五年复合增长率（CAGR）；财报不足或净利非正时显示「—」。"
-    )
-
-
 def _summary_rows(aggregates: dict, investment_override: dict) -> list[list[str]]:
     """
     每个元素: [市场, 生意总投资, 当前总市值, 本轮生意盈亏]。
@@ -326,7 +300,6 @@ def build_plain_report(
     others_assets: dict,
     rows_ok: list,
     notes: str,
-    bond_yield_pct: Optional[float],
 ) -> str:
     """窄屏友好的纯文本：汇总块 + 每只股票单独一块。"""
     lines = [
@@ -379,8 +352,6 @@ def build_plain_report(
 
     if rows_ok:
         lines.append("════════ 逐笔持仓 ════════")
-        lines.append(_graham_position_footnote(bond_yield_pct))
-        lines.append("")
         for r in rows_ok:
             lines.append("────────────────────────")
             lines.append(
@@ -390,8 +361,6 @@ def build_plain_report(
             lines.append(f"  买入价     {r['buy']}    现价 {r['current']}")
             lines.append(f"  成本       {r['cost']}    市值 {r['value']}")
             lines.append(f"  盈亏       {r['pnl']}")
-            lines.append(f"  隐含增长率(格雷厄姆) {r['implied_growth']}")
-            lines.append(f"  实际增长率(净利5年CAGR) {r['actual_growth']}")
         lines.append("────────────────────────")
 
     if notes:
@@ -408,7 +377,6 @@ def build_html_report(
     others_assets: dict,
     rows_ok: list,
     notes: str,
-    bond_yield_pct: Optional[float],
 ) -> str:
     """HTML 表格，手机邮箱可直接渲染为表。"""
     sum_rows = _summary_rows(aggregates, investment_override)
@@ -424,8 +392,7 @@ def build_html_report(
         pos_tr = "".join(
             "<tr><td class=\"txt\">{}</td><td class=\"txt\">{}</td><td class=\"sym\">{}</td>"
             "<td class=\"num\">{}</td><td class=\"num\">{}</td><td class=\"num\">{}</td>"
-            "<td class=\"num\">{}</td><td class=\"num\">{}</td><td class=\"num pnl\">{}</td>"
-            "<td class=\"num\">{}</td><td class=\"num\">{}</td></tr>".format(
+            "<td class=\"num\">{}</td><td class=\"num\">{}</td><td class=\"num pnl\">{}</td></tr>".format(
                 _h(r["num"]),
                 _h(r["market"]),
                 _h(r["symbol"]),
@@ -435,23 +402,19 @@ def build_html_report(
                 _h(r["cost"]),
                 _h(r["value"]),
                 _h(r["pnl"]),
-                _h(r["implied_growth"]),
-                _h(r["actual_growth"]),
             )
             for r in rows_ok
         )
         pos_block = """
 <h2>逐笔持仓</h2>
-<p class="note2">{}</p>
 <table>
 <thead><tr>
 <th class="txt">#</th><th class="txt">市场</th><th class="sym">代码</th><th class="num">股数</th>
 <th class="num">买入价</th><th class="num">现价</th><th class="num">成本</th><th class="num">市值</th><th class="num">盈亏</th>
-<th class="num">隐含增长率</th><th class="num">实际增长率</th>
 </tr></thead>
 <tbody>{}</tbody>
 </table>
-""".format(_h(_graham_position_footnote(bond_yield_pct)), pos_tr)
+""".format(pos_tr)
     else:
         pos_block = ""
 
@@ -578,9 +541,6 @@ def run_report():
         send_email(f"【持仓盈亏】{ts.strftime('%Y-%m-%d')} - 无记录", body)
         return
 
-    bond_yield_pct = get_graham_bond_yield_pct()
-    graham_fin_cache: Dict[Tuple[str, str], Tuple[Optional[float], Optional[float]]] = {}
-
     for i, record in enumerate(records):
         symbol = record.get("symbol", "")
         purchase_price = record.get("purchase_price")
@@ -619,17 +579,6 @@ def run_report():
         aggregates[market]["total_value"] += value
         aggregates[market]["total_pnl"] += pnl  # 仅备用；汇总本轮生意盈亏以总市值−生意总投资为准
 
-        cache_key = (symbol.strip(), market)
-        if cache_key not in graham_fin_cache:
-            graham_fin_cache[cache_key] = (
-                get_operating_eps_ttm(symbol, market),
-                get_net_income_cagr_5y_pct(symbol, market),
-            )
-        operating_eps, actual_growth_pct = graham_fin_cache[cache_key]
-        implied_pct = graham_implied_growth_pct(
-            current_price, bond_yield_pct, operating_eps
-        )
-
         rows_ok.append({
             "num": i + 1,
             "market": mname,
@@ -640,8 +589,6 @@ def run_report():
             "cost": _fmt_money(cur_sym, cost),
             "value": _fmt_money(cur_sym, value),
             "pnl": _fmt_money(cur_sym, pnl, signed=True),
-            "implied_growth": _fmt_pct_cell(implied_pct),
-            "actual_growth": _fmt_pct_cell(actual_growth_pct),
         })
 
     notes = build_notes_block(rows_skip_qty, rows_price_fail)
@@ -653,7 +600,6 @@ def run_report():
         others_assets,
         rows_ok,
         notes,
-        bond_yield_pct,
     )
     html_doc = build_html_report(
         ts,
@@ -663,7 +609,6 @@ def run_report():
         others_assets,
         rows_ok,
         notes,
-        bond_yield_pct,
     )
 
     print(f"[{ts}]\n{plain}\n")
