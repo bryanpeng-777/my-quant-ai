@@ -4,6 +4,7 @@
 支持多市场：美股(US)、港股(HK)
 """
 import os
+import time
 import yfinance as yf
 from openai import OpenAI
 import smtplib
@@ -189,6 +190,170 @@ def get_current_stock_price(symbol, market):
     except Exception as e:
         market_name = get_market_name(market)
         print(f"获取{market_name} {symbol} 当前价格时出错: {str(e)}")
+        return None
+
+
+def _find_statement_row(df, candidates):
+    """
+    在 yfinance 财报 DataFrame 的索引中匹配候选名称（大小写不敏感，子串匹配）。
+    df 为 income_stmt / financials 等；索引可能是中英文标签。
+    """
+    if df is None or df.empty:
+        return None
+    idx = [str(x) for x in df.index]
+    lowered = [s.lower() for s in idx]
+    for cand in candidates:
+        c = cand.lower()
+        for i, name in enumerate(lowered):
+            if c in name or name in c:
+                return df.index[i]
+    return None
+
+
+def get_graham_bond_yield_pct(max_retries=2):
+    """
+    格雷厄姆公式中的 Y：高等级公司债到期收益率，单位与公式常数 4.4 一致（百分比数值，如 4.85 表示 4.85%）。
+
+    优先读取环境变量 GRAHAM_BOND_YIELD_PCT（可直接填当天 Moody's Aaa 等）。
+    否则依次尝试 Yahoo 行情符号；若均失败返回 None。
+    """
+    raw = os.environ.get("GRAHAM_BOND_YIELD_PCT", "").strip()
+    if raw:
+        try:
+            return float(raw)
+        except ValueError:
+            print(f"[{datetime.now()}] ⚠️  GRAHAM_BOND_YIELD_PCT 无效，将尝试自动拉取")
+
+    symbols = ("^AAA", "AAA", "DAAA", "BAAA", "^TNX")
+    for sym in symbols:
+        for attempt in range(max_retries + 1):
+            try:
+                t = yf.Ticker(sym)
+                hist = t.history(period="10d")
+                if hist is not None and len(hist) > 0:
+                    v = float(hist["Close"].iloc[-1])
+                    if v > 0:
+                        return round(v, 4)
+            except Exception as e:
+                err_s = str(e).lower()
+                if "too many requests" in err_s or "rate limit" in err_s:
+                    time.sleep(2.0 * (attempt + 1))
+                    continue
+                break
+    return None
+
+
+def get_operating_eps_ttm(symbol, market=MARKET_US):
+    """
+    营业每股收益（TTM）：最近四个财报季的 Operating Income 之和 ÷ 当前总股本。
+    若无季报或缺少 Operating Income，则退回最近一个完整财年的营业利润 ÷ 股本。
+    """
+    try:
+        normalized_symbol = normalize_symbol(symbol, market)
+        t = yf.Ticker(normalized_symbol)
+        shares = None
+        info = getattr(t, "info", None) or {}
+        if isinstance(info, dict):
+            shares = info.get("sharesOutstanding") or info.get("impliedSharesOutstanding")
+        if shares is None or shares <= 0:
+            return None
+
+        qstmt = getattr(t, "quarterly_income_stmt", None)
+        if qstmt is None or qstmt.empty:
+            qstmt = getattr(t, "quarterly_financials", None)
+        row_oi = None
+        if qstmt is not None and not qstmt.empty:
+            row_oi = _find_statement_row(
+                qstmt,
+                ("Operating Income", "Operating Income Loss"),
+            )
+        if row_oi is not None:
+            cols = sorted(qstmt.columns, reverse=True)[:4]
+            if len(cols) >= 4:
+                total = 0.0
+                ok = True
+                for c in cols:
+                    val = qstmt.loc[row_oi, c]
+                    if val is None or pd.isna(val):
+                        ok = False
+                        break
+                    total += float(val)
+                if ok and total > 0:
+                    return total / float(shares)
+
+        fin = getattr(t, "income_stmt", None)
+        if fin is None or fin.empty:
+            fin = getattr(t, "financials", None)
+        if fin is None or fin.empty:
+            return None
+        row_oi = _find_statement_row(
+            fin,
+            ("Operating Income", "Operating Income Loss"),
+        )
+        if row_oi is None:
+            return None
+        col = sorted(fin.columns, reverse=True)[0]
+        oi = fin.loc[row_oi, col]
+        if oi is None or (isinstance(oi, float) and np.isnan(oi)) or float(oi) <= 0:
+            return None
+        return float(oi) / float(shares)
+    except Exception as e:
+        market_name = get_market_name(market)
+        print(f"[{datetime.now()}] 营业EPS(TTM) {market_name} {symbol}: {str(e)}")
+        return None
+
+
+def get_net_income_cagr_5y_pct(symbol, market=MARKET_US):
+    """
+    实际增长率（展示用）：最近年报 vs 约 5 年前年报的净利润复合增长率（%）。
+    若不足 5 个财年或净利润为负等无法计算则返回 None。
+    """
+    try:
+        normalized_symbol = normalize_symbol(symbol, market)
+        t = yf.Ticker(normalized_symbol)
+        fin = getattr(t, "income_stmt", None)
+        if fin is None or fin.empty:
+            fin = getattr(t, "financials", None)
+        if fin is None or fin.empty:
+            return None
+        row = _find_statement_row(
+            fin,
+            (
+                "Net Income Common Stockholders",
+                "Net Income",
+                "Net Income Including Noncontrolling Interests",
+            ),
+        )
+        if row is None:
+            return None
+        cols = sorted(fin.columns, reverse=True)
+        if len(cols) < 5:
+            return None
+        ni_now = float(fin.loc[row, cols[0]])
+        ni_old = float(fin.loc[row, cols[4]])
+        if ni_old <= 0 or ni_now <= 0:
+            return None
+        return ((ni_now / ni_old) ** (1.0 / 5.0) - 1.0) * 100.0
+    except Exception as e:
+        market_name = get_market_name(market)
+        print(f"[{datetime.now()}] 净利润CAGR {market_name} {symbol}: {str(e)}")
+        return None
+
+
+def graham_implied_growth_pct(price, bond_yield_pct, operating_eps):
+    """
+    格雷厄姆隐含增长率 g（%）：g = [ (P×Y)/(EPS_op×4.4) − 8.5 ] / 2
+    bond_yield_pct、结果均按「百分比数值」理解（与经典写法中 4.4、Y 一致）。
+    """
+    if price is None or bond_yield_pct is None or operating_eps is None:
+        return None
+    try:
+        p, y, eps = float(price), float(bond_yield_pct), float(operating_eps)
+        if eps <= 0:
+            return None
+        inner = (p * y) / (eps * 4.4) - 8.5
+        return inner / 2.0
+    except (TypeError, ValueError, ZeroDivisionError):
         return None
 
 # ==========================================
