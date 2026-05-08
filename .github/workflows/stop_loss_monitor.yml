@@ -1,15 +1,7 @@
 name: Stop Loss Monitor Pipeline
 
 on:
-  workflow_dispatch:  # 手动触发
-  push:
-    branches:
-      - main
-      - master
-    paths:
-      - 'check_stop_loss.py'
-      - 'purchase_records.json'
-      - 'stock_utils.py'
+  workflow_dispatch:  # 仅手动触发（push 不再自动跑）
 
 jobs:
   check_stop_loss:

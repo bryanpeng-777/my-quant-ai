@@ -1,15 +1,7 @@
 name: Index Sell Signal Monitor Pipeline
 
 on:
-  workflow_dispatch:  # 仅手动触发
-  push:
-    branches:
-      - main
-      - master
-    paths:
-      - 'check_index_sell.py'
-      - 'index_holdings.json'
-      - 'stock_utils.py'
+  workflow_dispatch:  # 仅手动触发（push 不再自动跑）
 
 jobs:
   check_index_sell:

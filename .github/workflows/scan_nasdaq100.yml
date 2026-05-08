@@ -1,13 +1,7 @@
 name: Nasdaq Top 100 Stock Scanner
 
 on:
-  workflow_dispatch: # 手动触发开关，方便随时测试
-  push:
-    branches:
-      - main
-      - master
-    paths:
-      - 'scanNasdaq100.py'
+  workflow_dispatch: # 仅手动触发（push 不再自动跑）
 
 jobs:
   scan_nasdaq100:
