@@ -1,0 +1,38 @@
+name: Mother Assets Daily Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 北京时间每天 21:00（UTC+8 → UTC 13:00）
+    - cron: '0 13 * * *'
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'mother_assets_report.py'
+      - 'mother_assets.json'
+      - 'mother_assets.example.json'
+      - 'stock_utils.py'
+
+jobs:
+  mother_assets_report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Execute Mother Assets Report
+        env:
+          EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_RECEIVER: ${{ secrets.EMAIL_RECEIVER }}
+        run: python mother_assets_report.py
