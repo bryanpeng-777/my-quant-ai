@@ -5,7 +5,7 @@
 - money_funds：年化收益率 annual_rate_pct、存放起始日 deposit_date（分 US/HK）
 - records：持仓股数
 
-现金收益 = 本金 × (年化% / 100) × 存放天数 / 365；现金合计 = 本金 + 现金收益。
+现金收益由 mother_cash_interest.py 按自然日逐日计息（闰年感知、可选日复利）。
 """
 import html
 import json
@@ -14,6 +14,11 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 
+from mother_cash_interest import (
+    METHOD_COMPOUND,
+    accrue_money_fund_interest,
+    parse_method,
+)
 from stock_utils import (
     MARKET_US,
     MARKET_HK,
@@ -27,7 +32,6 @@ from stock_utils import (
 )
 
 MOTHER_ASSETS_FILE = "mother_assets.json"
-DAYS_PER_YEAR = 365
 
 
 def _parse_cash_balances(data: dict) -> dict:
@@ -103,21 +107,23 @@ def _parse_money_funds(data: dict, cash_by_market: dict) -> tuple[dict, list[str
                 principal = float(principal_raw)
             else:
                 principal = float(cash_by_market.get(market, 0) or 0)
+            method_raw = entry.get("accrual_method")
+            try:
+                method = parse_method(method_raw)
+            except ValueError:
+                warnings.append(
+                    f"{get_market_name(market)} accrual_method 无效({method_raw!r})，使用 {METHOD_COMPOUND}"
+                )
+                method = METHOD_COMPOUND
             out[market] = {
                 "principal": principal,
                 "annual_rate_pct": rate_f,
                 "deposit_date": dep,
+                "accrual_method": method,
             }
         except (TypeError, ValueError) as e:
             warnings.append(f"{get_market_name(market)} money_funds 解析失败: {e}")
     return out, warnings
-
-
-def calc_cash_interest(principal: float, annual_rate_pct: float, deposit_date: date, as_of: date) -> tuple[int, float]:
-    """按自然日计息：收益 = 本金 × 年化 × 天数 / 365。"""
-    days = max(0, (as_of - deposit_date).days)
-    interest = principal * (annual_rate_pct / 100.0) * days / DAYS_PER_YEAR
-    return days, round(interest, 2)
 
 
 def load_mother_assets_source():
@@ -178,6 +184,7 @@ def _empty_market_totals():
         "fund_days": None,
         "fund_rate_pct": None,
         "fund_deposit_date": None,
+        "fund_accrual_method": None,
         "fund_interest_enabled": False,
     }
 
@@ -189,15 +196,20 @@ def apply_cash_fund_totals(aggregates: dict, cash_by_market: dict, money_funds_c
         principal = float(cash_by_market.get(market, 0) or 0)
         if cfg is not None:
             principal = cfg["principal"]
-            days, interest = calc_cash_interest(
-                principal, cfg["annual_rate_pct"], cfg["deposit_date"], as_of
+            result = accrue_money_fund_interest(
+                principal,
+                cfg["annual_rate_pct"],
+                cfg["deposit_date"],
+                as_of,
+                method=cfg.get("accrual_method", METHOD_COMPOUND),
             )
-            agg["cash_principal"] = principal
-            agg["cash_interest"] = interest
-            agg["cash"] = principal + interest
-            agg["fund_days"] = days
+            agg["cash_principal"] = result.principal
+            agg["cash_interest"] = result.interest
+            agg["cash"] = result.ending_balance
+            agg["fund_days"] = result.accrual_days
             agg["fund_rate_pct"] = cfg["annual_rate_pct"]
             agg["fund_deposit_date"] = cfg["deposit_date"]
+            agg["fund_accrual_method"] = result.method
             agg["fund_interest_enabled"] = True
         else:
             agg["cash_principal"] = principal
@@ -244,7 +256,10 @@ def _fund_detail_lines(market: str, aggregates: dict) -> list[str]:
     if agg["fund_interest_enabled"]:
         dep = agg["fund_deposit_date"].strftime("%Y-%m-%d")
         lines.append(f"  年化收益率     {agg['fund_rate_pct']:.2f}%")
-        lines.append(f"  存放天数       {agg['fund_days']} 天（自 {dep}）")
+        method = agg.get("fund_accrual_method") or METHOD_COMPOUND
+        method_cn = "按日复利" if method == METHOD_COMPOUND else "按日单利"
+        lines.append(f"  计息方式       {method_cn}")
+        lines.append(f"  计息天数       {agg['fund_days']} 天（{dep} 次日起至报告日）")
         lines.append(f"  累计现金收益   {_fmt_money(cur_sym, agg['cash_interest'], signed=True)}")
     else:
         lines.append("  （未配置 money_funds，现金收益按 0）")
@@ -254,9 +269,9 @@ def _fund_detail_lines(market: str, aggregates: dict) -> list[str]:
 
 def _footnote() -> str:
     return (
-        "说明：现金存放于货币基金；累计现金收益 = 本金 × 年化收益率 × 存放天数 ÷ 365。"
-        "deposit_date 为开始计息日（含当日）。请在 mother_assets.json 维护 cash_balances、"
-        "money_funds 与 records。"
+        "说明：现金收益由 mother_cash_interest.py 逐日计息（闰年按 365/366 天折算日利率）；"
+        "默认按日复利。deposit_date 为申购日，次日起息。本地核验："
+        "python mother_cash_interest.py --principal 本金 --rate 年化 --from 起息日"
     )
 
 
@@ -328,7 +343,9 @@ def build_html_report(ts, aggregates, rows_ok, notes) -> str:
         nm = get_market_name(market)
         if agg["fund_interest_enabled"]:
             dep = agg["fund_deposit_date"].strftime("%Y-%m-%d")
-            meta = f"{agg['fund_rate_pct']:.2f}% · {agg['fund_days']}天 · 自{dep}"
+            method = agg.get("fund_accrual_method") or METHOD_COMPOUND
+            method_cn = "复利" if method == METHOD_COMPOUND else "单利"
+            meta = f"{agg['fund_rate_pct']:.2f}% · {method_cn} · {agg['fund_days']}天 · {dep}起"
             interest_s = _fmt_money(cur_sym, agg["cash_interest"], signed=True)
         else:
             meta = "未配置 money_funds"

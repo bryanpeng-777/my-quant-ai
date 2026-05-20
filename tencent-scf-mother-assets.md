@@ -26,6 +26,7 @@ zip 根目录需包含：
 
 - `scf_entry.py`
 - `mother_assets_report.py`
+- `mother_cash_interest.py`
 - `stock_utils.py`
 - `mother_assets.json`（可选：若用环境变量 `MOTHER_ASSETS_JSON` 则可不放文件）
 

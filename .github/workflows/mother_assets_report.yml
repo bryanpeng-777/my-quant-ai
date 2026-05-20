@@ -11,6 +11,7 @@ on:
       - master
     paths:
       - 'mother_assets_report.py'
+      - 'mother_cash_interest.py'
       - 'mother_assets.json'
       - 'mother_assets.example.json'
       - 'stock_utils.py'
