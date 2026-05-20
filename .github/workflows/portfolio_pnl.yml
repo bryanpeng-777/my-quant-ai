@@ -8,6 +8,7 @@ on:
       - master
     paths:
       - 'portfolio_pnl.py'
+      - 'email_report_layout.py'
       - 'purchase_records.json'
       - 'stock_utils.py'
 

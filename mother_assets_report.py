@@ -7,7 +7,6 @@
 
 现金收益由 mother_cash_interest.py 按自然日逐日计息（闰年感知、可选日复利）。
 """
-import html
 import json
 import os
 from datetime import date, datetime
@@ -17,6 +16,14 @@ from zoneinfo import ZoneInfo
 
 REPORT_TZ = ZoneInfo("Asia/Shanghai")
 
+from email_report_layout import (
+    HTML_EMPTY,
+    build_email_page,
+    kv_row,
+    market_card,
+    notes_block,
+    section_heading,
+)
 from mother_cash_interest import (
     METHOD_COMPOUND,
     accrue_money_fund_interest,
@@ -171,56 +178,6 @@ def _fmt_money(cur_sym: str, amount: float, signed: bool = False) -> str:
             return f"-{cur_sym}{abs(amount):,.2f}"
         return f"{cur_sym}0.00"
     return f"{cur_sym}{amount:,.2f}"
-
-
-def _h(s) -> str:
-    return html.escape(str(s), quote=True)
-
-
-# 邮件客户端（尤其手机 QQ 邮箱）对多列表格支持差，采用卡片 + 两列键值布局
-_HTML_BODY = (
-    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;"
-    "margin:0;padding:12px;font-size:15px;color:#222;line-height:1.5;"
-    "max-width:100%;overflow-x:hidden;word-wrap:break-word;"
-)
-_HTML_CARD = (
-    "border:1px solid #e0e0e0;border-radius:8px;padding:12px 14px;"
-    "margin:0 0 12px;background:#fafbfc;max-width:100%;box-sizing:border-box;"
-)
-_HTML_CARD_TITLE = "font-size:16px;font-weight:600;margin:0 0 10px;color:#111;"
-_HTML_KV_TABLE = "width:100%;border-collapse:collapse;table-layout:auto;"
-_HTML_KV_LABEL = (
-    "padding:6px 8px 6px 0;color:#666;font-size:14px;vertical-align:top;"
-    "width:42%;word-break:break-word;"
-)
-_HTML_KV_VALUE = (
-    "padding:6px 0;text-align:right;font-size:14px;vertical-align:top;"
-    "white-space:normal;word-break:break-all;font-variant-numeric:tabular-nums;"
-)
-_HTML_KV_VALUE_PNL = _HTML_KV_VALUE + "font-weight:600;color:#0a7a2f;"
-_HTML_H2 = (
-    "font-size:16px;margin:20px 0 10px;padding-bottom:6px;"
-    "border-bottom:1px solid #e0e0e0;font-weight:600;"
-)
-_HTML_META = "color:#666;font-size:13px;margin:0 0 14px;line-height:1.45;"
-_HTML_NOTE = "font-size:12px;color:#666;margin:0 0 14px;line-height:1.45;"
-
-
-def _html_kv_row(label: str, value: str, *, pnl: bool = False) -> str:
-    val_style = _HTML_KV_VALUE_PNL if pnl else _HTML_KV_VALUE
-    return (
-        f"<tr><td style=\"{_HTML_KV_LABEL}\">{_h(label)}</td>"
-        f"<td style=\"{val_style}\">{_h(value)}</td></tr>"
-    )
-
-
-def _html_market_card(title: str, rows_html: str) -> str:
-    return (
-        f"<div style=\"{_HTML_CARD}\">"
-        f"<div style=\"{_HTML_CARD_TITLE}\">{_h(title)}</div>"
-        f"<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"{_HTML_KV_TABLE}\">"
-        f"<tbody>{rows_html}</tbody></table></div>"
-    )
 
 
 def _empty_market_totals():
@@ -403,32 +360,30 @@ def build_html_report(ts, aggregates, rows_ok, notes) -> str:
             continue
         cur_sym = get_currency_symbol(market)
         nm = get_market_name(market)
-        rows = [_html_kv_row("本金", _fmt_money(cur_sym, agg["cash_principal"]))]
+        rows = [kv_row("本金", _fmt_money(cur_sym, agg["cash_principal"]))]
         if agg["fund_interest_enabled"]:
             dep = agg["fund_deposit_date"].strftime("%Y-%m-%d")
             method = agg.get("fund_accrual_method") or METHOD_COMPOUND
             method_cn = "按日复利" if method == METHOD_COMPOUND else "按日单利"
-            rows.append(_html_kv_row("年化收益率", f"{agg['fund_rate_pct']:.2f}%"))
-            rows.append(_html_kv_row("计息方式", method_cn))
-            rows.append(_html_kv_row("配置起息日", dep))
-            rows.append(_html_kv_row("计息天数", f"{agg['fund_days']} 天"))
+            rows.append(kv_row("年化收益率", f"{agg['fund_rate_pct']:.2f}%"))
+            rows.append(kv_row("计息方式", method_cn))
+            rows.append(kv_row("配置起息日", dep))
+            rows.append(kv_row("计息天数", f"{agg['fund_days']} 天"))
             rows.append(
-                _html_kv_row(
+                kv_row(
                     "累计现金收益",
                     _fmt_money(cur_sym, agg["cash_interest"], signed=True),
                     pnl=True,
                 )
             )
         else:
-            rows.append(_html_kv_row("货币基金", "未配置 money_funds"))
-        rows.append(_html_kv_row("现金合计", _fmt_money(cur_sym, agg["cash"])))
-        fund_cards.append(_html_market_card(f"{nm} · 货币基金", "".join(rows)))
+            rows.append(kv_row("货币基金", "未配置 money_funds"))
+        rows.append(kv_row("现金合计", _fmt_money(cur_sym, agg["cash"])))
+        fund_cards.append(market_card(f"{nm} · 货币基金", "".join(rows)))
 
     fund_block = ""
     if fund_cards:
-        fund_block = (
-            f"<h2 style=\"{_HTML_H2}\">货币基金现金</h2>" + "".join(fund_cards)
-        )
+        fund_block = section_heading("货币基金现金") + "".join(fund_cards)
 
     summary_cards = []
     for row in _summary_rows(aggregates):
@@ -436,15 +391,15 @@ def build_html_report(ts, aggregates, rows_ok, notes) -> str:
         if principal == "—" and stock == "—":
             continue
         summary_cards.append(
-            _html_market_card(
+            market_card(
                 m,
                 "".join(
                     [
-                        _html_kv_row("货币基金本金", principal),
-                        _html_kv_row("累计现金收益", interest, pnl=True),
-                        _html_kv_row("现金合计", cash),
-                        _html_kv_row("股票市值", stock),
-                        _html_kv_row("合计总资产", total),
+                        kv_row("货币基金本金", principal),
+                        kv_row("累计现金收益", interest, pnl=True),
+                        kv_row("现金合计", cash),
+                        kv_row("股票市值", stock),
+                        kv_row("合计总资产", total),
                     ]
                 ),
             )
@@ -454,49 +409,28 @@ def build_html_report(ts, aggregates, rows_ok, notes) -> str:
     for r in rows_ok:
         title = f"#{r['num']} {r['symbol']}（{r['market']}）"
         rows = [
-            _html_kv_row("股数", r["qty"]),
-            _html_kv_row("现价", r["current"]),
-            _html_kv_row("市值", r["value"]),
+            kv_row("股数", r["qty"]),
+            kv_row("现价", r["current"]),
+            kv_row("市值", r["value"]),
         ]
         if r.get("extra") and r["extra"] != "—":
-            rows.append(_html_kv_row("成本/盈亏", r["extra"]))
-        pos_cards.append(_html_market_card(title, "".join(rows)))
+            rows.append(kv_row("成本/盈亏", r["extra"]))
+        pos_cards.append(market_card(title, "".join(rows)))
 
     pos_block = ""
     if pos_cards:
-        pos_block = f"<h2 style=\"{_HTML_H2}\">逐笔持仓</h2>" + "".join(pos_cards)
+        pos_block = section_heading("逐笔持仓") + "".join(pos_cards)
 
-    notes_html = ""
-    if notes:
-        notes_html = (
-            "<div style=\"margin-top:16px;font-size:13px;color:#555;"
-            "white-space:pre-wrap;word-break:break-word;\">"
-            f"{_h(notes)}</div>"
-        )
+    summary_html = "".join(summary_cards) if summary_cards else HTML_EMPTY
+    body = fund_block + section_heading("按市场汇总") + summary_html + pos_block + notes_block(notes)
 
-    if summary_cards:
-        summary_html = "".join(summary_cards)
-    else:
-        summary_html = '<p style="color:#666;">暂无汇总数据</p>'
-
-    return f"""<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-</head>
-<body style="{_HTML_BODY}">
-<h1 style="font-size:18px;margin:0 0 8px;font-weight:600;">母亲资产余额</h1>
-<p style="{_HTML_META}">生成时间：{_h(ts.strftime("%Y-%m-%d %H:%M:%S"))}（北京时间）</p>
-<p style="{_HTML_NOTE}">{_h(_footnote())}</p>
-{fund_block}
-<h2 style="{_HTML_H2}">按市场汇总</h2>
-{summary_html}
-{pos_block}
-{notes_html}
-</body>
-</html>
-"""
+    return build_email_page(
+        "母亲资产余额",
+        ts,
+        _footnote(),
+        body,
+        time_label="生成时间（北京时间）",
+    )
 
 
 def build_notes_block(rows_skip: list, rows_price_fail: list, config_warnings: list) -> str:

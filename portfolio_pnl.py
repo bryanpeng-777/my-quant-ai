@@ -5,12 +5,20 @@
 「投资占比」= 生意总投资 ÷（current_total_assets − others_assets），后者为扣减他人资产后的当前总资产。
 逐笔明细盈亏仍按买入价×数量与现价计算。
 """
-import html
 import json
 import os
 from datetime import datetime
 from pathlib import Path
 
+from email_report_layout import (
+    HTML_EMPTY,
+    build_email_page,
+    h,
+    kv_row,
+    market_card,
+    notes_block,
+    section_heading,
+)
 from stock_utils import (
     MARKET_US,
     MARKET_HK,
@@ -163,10 +171,6 @@ def _fmt_money(cur_sym: str, amount: float, signed: bool = False) -> str:
             return f"-{cur_sym}{abs(amount):,.2f}"
         return f"{cur_sym}0.00"
     return f"{cur_sym}{amount:,.2f}"
-
-
-def _h(s) -> str:
-    return html.escape(str(s), quote=True)
 
 
 def _summary_rows(aggregates: dict, investment_override: dict) -> list[list[str]]:
@@ -378,45 +382,23 @@ def build_html_report(
     rows_ok: list,
     notes: str,
 ) -> str:
-    """HTML 表格，手机邮箱可直接渲染为表。"""
-    sum_rows = _summary_rows(aggregates, investment_override)
-    sum_tr = "".join(
-        "<tr><td class=\"txt\">{}</td><td class=\"num\">{}</td>"
-        "<td class=\"num\">{}</td><td class=\"num pnl\">{}</td></tr>".format(
-            _h(a[0]), _h(a[1]), _h(a[2]), _h(a[3])
-        )
-        for a in sum_rows
-    )
-
-    if rows_ok:
-        pos_tr = "".join(
-            "<tr><td class=\"txt\">{}</td><td class=\"txt\">{}</td><td class=\"sym\">{}</td>"
-            "<td class=\"num\">{}</td><td class=\"num\">{}</td><td class=\"num\">{}</td>"
-            "<td class=\"num\">{}</td><td class=\"num\">{}</td><td class=\"num pnl\">{}</td></tr>".format(
-                _h(r["num"]),
-                _h(r["market"]),
-                _h(r["symbol"]),
-                _h(r["qty"]),
-                _h(r["buy"]),
-                _h(r["current"]),
-                _h(r["cost"]),
-                _h(r["value"]),
-                _h(r["pnl"]),
+    """手机邮箱友好：卡片 + 键值对布局。"""
+    summary_cards = []
+    for m, inv, value, pnl in _summary_rows(aggregates, investment_override):
+        if inv == "—" and value == "—":
+            continue
+        summary_cards.append(
+            market_card(
+                m,
+                "".join(
+                    [
+                        kv_row("生意总投资", inv),
+                        kv_row("当前总市值", value),
+                        kv_row("本轮生意盈亏", pnl, pnl=True),
+                    ]
+                ),
             )
-            for r in rows_ok
         )
-        pos_block = """
-<h2>逐笔持仓</h2>
-<table>
-<thead><tr>
-<th class="txt">#</th><th class="txt">市场</th><th class="sym">代码</th><th class="num">股数</th>
-<th class="num">买入价</th><th class="num">现价</th><th class="num">成本</th><th class="num">市值</th><th class="num">盈亏</th>
-</tr></thead>
-<tbody>{}</tbody>
-</table>
-""".format(pos_tr)
-    else:
-        pos_block = ""
 
     ratio_rows = _investment_ratio_rows(
         aggregates, investment_override, assets_gross, others_assets
@@ -424,90 +406,74 @@ def build_html_report(
     ratio_warn = _ratio_net_nonpositive_messages(
         aggregates, assets_gross, others_assets
     )
+    ratio_block = ""
     if ratio_rows:
-        rtr = "".join(
-            "<tr><td class=\"txt\">{}</td><td class=\"num\">{}</td>"
-            "<td class=\"num\">{}</td><td class=\"num\">{}</td>"
-            "<td class=\"num\">{}</td><td class=\"num\">{}</td></tr>".format(
-                _h(nm),
-                _h(_fmt_money(cur_sym, g)),
-                _h(_fmt_money(cur_sym, oth)),
-                _h(_fmt_money(cur_sym, nt)),
-                _h(_fmt_money(cur_sym, iv)),
-                _h(pct_s),
+        ratio_cards = []
+        for nm, cur_sym, iv, g, oth, nt, pct_s in ratio_rows:
+            ratio_cards.append(
+                market_card(
+                    nm,
+                    "".join(
+                        [
+                            kv_row("配置总资产", _fmt_money(cur_sym, g)),
+                            kv_row("他人资产", _fmt_money(cur_sym, oth)),
+                            kv_row("当前总资产(扣减后)", _fmt_money(cur_sym, nt)),
+                            kv_row("生意总投资", _fmt_money(cur_sym, iv)),
+                            kv_row("投资占比", pct_s),
+                        ]
+                    ),
+                )
             )
-            for nm, cur_sym, iv, g, oth, nt, pct_s in ratio_rows
+        ratio_block = (
+            section_heading("投资占比（生意总投资 ÷ 扣减后当前总资产）")
+            + f'<p style="font-size:12px;color:#666;margin:0 0 12px;line-height:1.45;">{h(_ratio_footnote())}</p>'
+            + "".join(ratio_cards)
         )
-        ratio_block = """
-<h2>投资占比（生意总投资 ÷ 扣减后当前总资产）</h2>
-<p class="note2">{}</p>
-<table>
-<thead><tr>
-<th class="txt">市场</th><th class="num">配置总资产</th><th class="num">他人资产</th><th class="num">当前总资产(扣减后)</th><th class="num">生意总投资</th><th class="num">投资占比</th>
-</tr></thead>
-<tbody>{}</tbody>
-</table>
-""".format(_h(_ratio_footnote()), rtr)
     elif ratio_warn:
-        ratio_block = "<h2>投资占比</h2>" + "".join(
-            "<p class=\"note2\">{}</p>".format(_h(w)) for w in ratio_warn
-        )
+        warn_cards = [
+            market_card("提示", kv_row("投资占比", w)) for w in ratio_warn
+        ]
+        ratio_block = section_heading("投资占比") + "".join(warn_cards)
     elif assets_gross.get(MARKET_US) or assets_gross.get(MARKET_HK):
         ratio_block = (
-            "<h2>投资占比</h2>"
-            "<p class=\"note2\">已配置 current_total_assets，但无对应市场的有效持仓汇总，本节暂无数据。</p>"
-        )
-    else:
-        ratio_block = ""
-
-    notes_html = ""
-    if notes:
-        notes_html = "<div class=\"notes\"><pre style=\"white-space:pre-wrap;margin:0;\">{}</pre></div>".format(
-            _h(notes)
+            section_heading("投资占比")
+            + '<p style="font-size:12px;color:#666;margin:0 0 12px;">'
+            "已配置 current_total_assets，但无对应市场的有效持仓汇总，本节暂无数据。</p>"
         )
 
-    return f"""<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  margin: 12px; font-size: 15px; color: #222; line-height: 1.45; }}
-h1 {{ font-size: 18px; margin: 0 0 6px; font-weight: 600; }}
-.meta {{ color: #666; font-size: 13px; margin-bottom: 18px; }}
-h2 {{ font-size: 16px; margin: 22px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #e0e0e0; font-weight: 600; }}
-table {{ width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }}
-th, td {{ border: 1px solid #ddd; padding: 10px 6px; font-size: 13px; vertical-align: middle; }}
-th {{ background: #f2f5f9; font-weight: 600; text-align: right; }}
-td.num {{ text-align: right; font-variant-numeric: tabular-nums; }}
-td.txt {{ text-align: center; }}
-td.sym {{ text-align: left; font-weight: 600; word-break: break-all; }}
-th.txt {{ text-align: center; }}
-th.sym {{ text-align: left; }}
-th.num {{ text-align: right; }}
-.pnl {{ font-weight: 600; }}
-.notes {{ margin-top: 20px; font-size: 13px; color: #555; }}
-.note2 {{ font-size: 12px; color: #666; margin: 8px 0 14px; line-height: 1.45; }}
-</style>
-</head>
-<body>
-<h1>持仓盈亏</h1>
-<p class="meta">生成时间：{_h(ts.strftime("%Y-%m-%d %H:%M:%S"))}</p>
-<h2>按市场汇总</h2>
-<p class="note2">{_h(_summary_footnote(investment_override))}</p>
-<table>
-<thead><tr>
-<th class="txt">市场</th><th class="num">生意总投资</th><th class="num">当前总市值</th><th class="num">本轮生意盈亏</th>
-</tr></thead>
-<tbody>{sum_tr}</tbody>
-</table>
-{ratio_block}
-{pos_block}
-{notes_html}
-</body>
-</html>
-"""
+    pos_cards = []
+    for r in rows_ok:
+        title = f"#{r['num']} {r['symbol']}（{r['market']}）"
+        pos_cards.append(
+            market_card(
+                title,
+                "".join(
+                    [
+                        kv_row("股数", r["qty"]),
+                        kv_row("买入价", r["buy"]),
+                        kv_row("现价", r["current"]),
+                        kv_row("成本", r["cost"]),
+                        kv_row("市值", r["value"]),
+                        kv_row("盈亏", r["pnl"], pnl=True),
+                    ]
+                ),
+            )
+        )
+    pos_block = ""
+    if pos_cards:
+        pos_block = section_heading("逐笔持仓") + "".join(pos_cards)
+
+    summary_html = "".join(summary_cards) if summary_cards else HTML_EMPTY
+    body = (
+        section_heading("按市场汇总")
+        + f'<p style="font-size:12px;color:#666;margin:0 0 12px;line-height:1.45;">{h(_summary_footnote(investment_override))}</p>'
+        + summary_html
+        + ratio_block
+        + pos_block
+        + notes_block(notes)
+    )
+
+    return build_email_page("持仓盈亏", ts, "", body)
 
 
 def build_notes_block(rows_skip_qty: list, rows_price_fail: list) -> str:
