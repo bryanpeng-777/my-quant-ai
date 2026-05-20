@@ -1,17 +1,12 @@
 {
   "cash_balances": {
-    "US": 0,
-    "HK": 0
+    "US": 16200,
+    "HK": 8000
   },
   "records": [
     {
-      "symbol": "AAPL",
-      "quantity": 10,
-      "purchase_price": 150.5
-    },
-    {
       "symbol": "0700",
-      "quantity": 200
+      "quantity": 100
     }
   ]
 }
