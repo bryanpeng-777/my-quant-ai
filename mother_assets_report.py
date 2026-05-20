@@ -474,6 +474,11 @@ def build_html_report(ts, aggregates, rows_ok, notes) -> str:
             f"{_h(notes)}</div>"
         )
 
+    if summary_cards:
+        summary_html = "".join(summary_cards)
+    else:
+        summary_html = '<p style="color:#666;">暂无汇总数据</p>'
+
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -486,7 +491,7 @@ def build_html_report(ts, aggregates, rows_ok, notes) -> str:
 <p style="{_HTML_NOTE}">{_h(_footnote())}</p>
 {fund_block}
 <h2 style="{_HTML_H2}">按市场汇总</h2>
-{"".join(summary_cards) if summary_cards else "<p style=\"color:#666;\">暂无汇总数据</p>"}
+{summary_html}
 {pos_block}
 {notes_html}
 </body>
