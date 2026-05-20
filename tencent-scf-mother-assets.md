@@ -47,7 +47,7 @@ docker run --rm -v "$PWD:/w" -w /w python:3.11-slim bash -c \
 | `EMAIL_SENDER` | QQ 邮箱发件地址 |
 | `EMAIL_PASSWORD` | QQ 邮箱 SMTP 授权码 |
 | `EMAIL_RECEIVER` | 收件人 |
-| `MOTHER_ASSETS_JSON` | （推荐）整段 JSON，结构与 `mother_assets.example.json` 一致；设置后优先于包内 `mother_assets.json` |
+| `MOTHER_ASSETS_JSON` | （推荐）整段 JSON，结构与 `mother_assets.example.json` 一致；设置后优先于包内 `mother_assets.json`。含 `money_funds`（分 US/HK 的 `annual_rate_pct`、`deposit_date`）用于货币基金累计收益 |
 
 无需 `DEEPSEEK_API_KEY`。
 

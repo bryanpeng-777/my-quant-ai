@@ -1,13 +1,18 @@
 """
 母亲资产每日余额报告
-从 mother_assets.json 读取：cash_balances（分市场现金）、records（持仓股数）。
-按市场汇总：现金 + 股票市值 = 总资产；逐笔列出持仓现价与市值。
+从 mother_assets.json 读取：
+- cash_balances：分市场货币基金本金（本金）
+- money_funds：年化收益率 annual_rate_pct、存放起始日 deposit_date（分 US/HK）
+- records：持仓股数
+
+现金收益 = 本金 × (年化% / 100) × 存放天数 / 365；现金合计 = 本金 + 现金收益。
 """
 import html
 import json
 import os
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
+from typing import Optional
 
 from stock_utils import (
     MARKET_US,
@@ -22,10 +27,11 @@ from stock_utils import (
 )
 
 MOTHER_ASSETS_FILE = "mother_assets.json"
+DAYS_PER_YEAR = 365
 
 
 def _parse_cash_balances(data: dict) -> dict:
-    """cash_balances: { US, HK } 或单数字视作 US 美元现金。"""
+    """cash_balances: { US, HK } 或单数字视作 US 美元现金（货币基金本金）。"""
     out = {MARKET_US: 0.0, MARKET_HK: 0.0}
     raw = data.get("cash_balances")
     if raw is None:
@@ -44,34 +50,108 @@ def _parse_cash_balances(data: dict) -> dict:
     return out
 
 
+def _parse_deposit_date(raw) -> Optional[date]:
+    if raw is None:
+        return None
+    if isinstance(raw, date) and not isinstance(raw, datetime):
+        return raw
+    if isinstance(raw, datetime):
+        return raw.date()
+    s = str(raw).strip()
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d"):
+        try:
+            return datetime.strptime(s, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _parse_money_funds(data: dict, cash_by_market: dict) -> tuple[dict, list[str]]:
+    """
+    money_funds 按市场：
+      { "annual_rate_pct": 4.5, "deposit_date": "2025-01-01", "principal": 可选 }
+    返回 (per_market_config, warnings)
+    per_market_config[market] = dict 或 None（未配置则仅本金、不计收益）
+    """
+    out = {MARKET_US: None, MARKET_HK: None}
+    warnings = []
+    raw = data.get("money_funds")
+    if not isinstance(raw, dict):
+        return out, warnings
+
+    for market in (MARKET_US, MARKET_HK):
+        entry = raw.get(market)
+        if entry is None:
+            continue
+        if not isinstance(entry, dict):
+            warnings.append(f"{get_market_name(market)} money_funds 条目格式无效")
+            continue
+        try:
+            rate = entry.get("annual_rate_pct")
+            if rate is None:
+                warnings.append(f"{get_market_name(market)} 缺少 annual_rate_pct，跳过收益计算")
+                continue
+            rate_f = float(rate)
+            dep = _parse_deposit_date(entry.get("deposit_date"))
+            if dep is None:
+                warnings.append(
+                    f"{get_market_name(market)} 缺少或无效 deposit_date，跳过收益计算"
+                )
+                continue
+            principal_raw = entry.get("principal")
+            if principal_raw is not None:
+                principal = float(principal_raw)
+            else:
+                principal = float(cash_by_market.get(market, 0) or 0)
+            out[market] = {
+                "principal": principal,
+                "annual_rate_pct": rate_f,
+                "deposit_date": dep,
+            }
+        except (TypeError, ValueError) as e:
+            warnings.append(f"{get_market_name(market)} money_funds 解析失败: {e}")
+    return out, warnings
+
+
+def calc_cash_interest(principal: float, annual_rate_pct: float, deposit_date: date, as_of: date) -> tuple[int, float]:
+    """按自然日计息：收益 = 本金 × 年化 × 天数 / 365。"""
+    days = max(0, (as_of - deposit_date).days)
+    interest = principal * (annual_rate_pct / 100.0) * days / DAYS_PER_YEAR
+    return days, round(interest, 2)
+
+
 def load_mother_assets_source():
-    """返回 (records, cash_by_market)。"""
+    """返回 (records, cash_by_market, money_funds_cfg, warnings)。"""
+    empty_cash = {MARKET_US: 0.0, MARKET_HK: 0.0}
+    empty_funds = {MARKET_US: None, MARKET_HK: None}
+
+    def _from_data(data: dict):
+        if not isinstance(data, dict):
+            return [], empty_cash.copy(), empty_funds.copy(), []
+        cash = _parse_cash_balances(data)
+        funds, warns = _parse_money_funds(data, cash)
+        return data.get("records", []), cash, funds, warns
+
     env_raw = os.environ.get("MOTHER_ASSETS_JSON", "").strip()
     if env_raw:
         try:
-            data = json.loads(env_raw)
-            if not isinstance(data, dict):
-                return [], {MARKET_US: 0.0, MARKET_HK: 0.0}
-            return data.get("records", []), _parse_cash_balances(data)
+            return _from_data(json.loads(env_raw))
         except json.JSONDecodeError:
             print(f"[{datetime.now()}] ⚠️  MOTHER_ASSETS_JSON 不是合法 JSON")
-            return [], {MARKET_US: 0.0, MARKET_HK: 0.0}
+            return [], empty_cash.copy(), empty_funds.copy(), []
 
     if not Path(MOTHER_ASSETS_FILE).exists():
-        return [], {MARKET_US: 0.0, MARKET_HK: 0.0}
+        return [], empty_cash.copy(), empty_funds.copy(), []
 
     try:
         with open(MOTHER_ASSETS_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if not isinstance(data, dict):
-            return [], {MARKET_US: 0.0, MARKET_HK: 0.0}
-        return data.get("records", []), _parse_cash_balances(data)
+            return _from_data(json.load(f))
     except json.JSONDecodeError:
         print(f"[{datetime.now()}] ⚠️  {MOTHER_ASSETS_FILE} 格式错误")
-        return [], {MARKET_US: 0.0, MARKET_HK: 0.0}
+        return [], empty_cash.copy(), empty_funds.copy(), []
     except Exception as e:
         print(f"[{datetime.now()}] ⚠️  加载母亲资产配置时出错: {e}")
-        return [], {MARKET_US: 0.0, MARKET_HK: 0.0}
+        return [], empty_cash.copy(), empty_funds.copy(), []
 
 
 def _fmt_money(cur_sym: str, amount: float, signed: bool = False) -> str:
@@ -89,24 +169,63 @@ def _h(s) -> str:
 
 
 def _empty_market_totals():
-    return {"cash": 0.0, "stock_value": 0.0, "total": 0.0}
+    return {
+        "cash_principal": 0.0,
+        "cash_interest": 0.0,
+        "cash": 0.0,
+        "stock_value": 0.0,
+        "total": 0.0,
+        "fund_days": None,
+        "fund_rate_pct": None,
+        "fund_deposit_date": None,
+        "fund_interest_enabled": False,
+    }
 
 
-def _summary_rows(aggregates: dict, cash_by_market: dict) -> list[list[str]]:
+def apply_cash_fund_totals(aggregates: dict, cash_by_market: dict, money_funds_cfg: dict, as_of: date):
+    for market in (MARKET_US, MARKET_HK):
+        agg = aggregates[market]
+        cfg = money_funds_cfg.get(market)
+        principal = float(cash_by_market.get(market, 0) or 0)
+        if cfg is not None:
+            principal = cfg["principal"]
+            days, interest = calc_cash_interest(
+                principal, cfg["annual_rate_pct"], cfg["deposit_date"], as_of
+            )
+            agg["cash_principal"] = principal
+            agg["cash_interest"] = interest
+            agg["cash"] = principal + interest
+            agg["fund_days"] = days
+            agg["fund_rate_pct"] = cfg["annual_rate_pct"]
+            agg["fund_deposit_date"] = cfg["deposit_date"]
+            agg["fund_interest_enabled"] = True
+        else:
+            agg["cash_principal"] = principal
+            agg["cash_interest"] = 0.0
+            agg["cash"] = principal
+            agg["fund_interest_enabled"] = False
+
+
+def _summary_rows(aggregates: dict) -> list[list[str]]:
     rows = []
     for market in (MARKET_US, MARKET_HK):
         name = get_market_name(market)
         cur_sym = get_currency_symbol(market)
-        cash = cash_by_market.get(market, 0.0) or 0.0
-        stock_val = aggregates[market]["stock_value"]
-        total = cash + stock_val
-        if cash <= 0 and stock_val <= 0:
-            rows.append([name, "—", "—", "—"])
+        agg = aggregates[market]
+        principal = agg["cash_principal"]
+        interest = agg["cash_interest"]
+        cash_total = agg["cash"]
+        stock_val = agg["stock_value"]
+        total = cash_total + stock_val
+        if principal <= 0 and interest <= 0 and stock_val <= 0:
+            rows.append([name, "—", "—", "—", "—", "—"])
         else:
             rows.append(
                 [
                     name,
-                    _fmt_money(cur_sym, cash),
+                    _fmt_money(cur_sym, principal),
+                    _fmt_money(cur_sym, interest, signed=True),
+                    _fmt_money(cur_sym, cash_total),
                     _fmt_money(cur_sym, stock_val),
                     _fmt_money(cur_sym, total),
                 ]
@@ -114,23 +233,62 @@ def _summary_rows(aggregates: dict, cash_by_market: dict) -> list[list[str]]:
     return rows
 
 
-def build_plain_report(ts, aggregates, cash_by_market, rows_ok, notes) -> str:
+def _fund_detail_lines(market: str, aggregates: dict) -> list[str]:
+    agg = aggregates[market]
+    if agg["cash_principal"] <= 0 and not agg["fund_interest_enabled"]:
+        return []
+    cur_sym = get_currency_symbol(market)
+    name = get_market_name(market)
+    lines = [f"{name} 货币基金"]
+    lines.append(f"  本金           {_fmt_money(cur_sym, agg['cash_principal'])}")
+    if agg["fund_interest_enabled"]:
+        dep = agg["fund_deposit_date"].strftime("%Y-%m-%d")
+        lines.append(f"  年化收益率     {agg['fund_rate_pct']:.2f}%")
+        lines.append(f"  存放天数       {agg['fund_days']} 天（自 {dep}）")
+        lines.append(f"  累计现金收益   {_fmt_money(cur_sym, agg['cash_interest'], signed=True)}")
+    else:
+        lines.append("  （未配置 money_funds，现金收益按 0）")
+    lines.append(f"  现金合计       {_fmt_money(cur_sym, agg['cash'])}")
+    return lines
+
+
+def _footnote() -> str:
+    return (
+        "说明：现金存放于货币基金；累计现金收益 = 本金 × 年化收益率 × 存放天数 ÷ 365。"
+        "deposit_date 为开始计息日（含当日）。请在 mother_assets.json 维护 cash_balances、"
+        "money_funds 与 records。"
+    )
+
+
+def build_plain_report(ts, aggregates, rows_ok, notes) -> str:
     lines = [
         "【母亲资产余额】",
         f"生成时间: {ts.strftime('%Y-%m-%d %H:%M:%S')}",
         "",
-        "════════ 按市场汇总 ════════",
+        "════════ 货币基金现金 ════════",
     ]
-    for row in _summary_rows(aggregates, cash_by_market):
-        m, cash, stock, total = row
-        lines.append(f"{m}")
-        lines.append(f"  现金余额     {cash}")
-        lines.append(f"  股票市值     {stock}")
-        lines.append(f"  合计总资产   {total}")
+    has_fund = False
+    for market in (MARKET_US, MARKET_HK):
+        block = _fund_detail_lines(market, aggregates)
+        if block:
+            has_fund = True
+            lines.extend(block)
+            lines.append("")
+    if not has_fund:
+        lines.append("（无现金配置）")
         lines.append("")
-    lines.append(
-        "说明：合计 = 配置现金 cash_balances + 持仓按现价计算的市值；请定期在 mother_assets.json 更新现金与股数。"
-    )
+
+    lines.append("════════ 按市场汇总 ════════")
+    for row in _summary_rows(aggregates):
+        m, principal, interest, cash, stock, total = row
+        lines.append(f"{m}")
+        lines.append(f"  货币基金本金   {principal}")
+        lines.append(f"  累计现金收益   {interest}")
+        lines.append(f"  现金合计       {cash}")
+        lines.append(f"  股票市值       {stock}")
+        lines.append(f"  合计总资产     {total}")
+        lines.append("")
+    lines.append(_footnote())
     lines.append("")
 
     if rows_ok:
@@ -152,14 +310,51 @@ def build_plain_report(ts, aggregates, cash_by_market, rows_ok, notes) -> str:
     return "\n".join(lines)
 
 
-def build_html_report(ts, aggregates, cash_by_market, rows_ok, notes) -> str:
+def build_html_report(ts, aggregates, rows_ok, notes) -> str:
     sum_tr = "".join(
-        "<tr><td class=\"txt\">{}</td><td class=\"num\">{}</td>"
-        "<td class=\"num\">{}</td><td class=\"num\">{}</td></tr>".format(
-            _h(a[0]), _h(a[1]), _h(a[2]), _h(a[3])
+        "<tr><td class=\"txt\">{}</td><td class=\"num\">{}</td><td class=\"num pnl\">{}</td>"
+        "<td class=\"num\">{}</td><td class=\"num\">{}</td><td class=\"num\">{}</td></tr>".format(
+            _h(a[0]), _h(a[1]), _h(a[2]), _h(a[3]), _h(a[4]), _h(a[5])
         )
-        for a in _summary_rows(aggregates, cash_by_market)
+        for a in _summary_rows(aggregates)
     )
+
+    fund_rows = []
+    for market in (MARKET_US, MARKET_HK):
+        agg = aggregates[market]
+        if agg["cash_principal"] <= 0 and not agg["fund_interest_enabled"]:
+            continue
+        cur_sym = get_currency_symbol(market)
+        nm = get_market_name(market)
+        if agg["fund_interest_enabled"]:
+            dep = agg["fund_deposit_date"].strftime("%Y-%m-%d")
+            meta = f"{agg['fund_rate_pct']:.2f}% · {agg['fund_days']}天 · 自{dep}"
+            interest_s = _fmt_money(cur_sym, agg["cash_interest"], signed=True)
+        else:
+            meta = "未配置 money_funds"
+            interest_s = _fmt_money(cur_sym, 0)
+        fund_rows.append(
+            "<tr><td class=\"txt\">{}</td><td class=\"num\">{}</td><td class=\"txt\">{}</td>"
+            "<td class=\"num pnl\">{}</td><td class=\"num\">{}</td></tr>".format(
+                _h(nm),
+                _h(_fmt_money(cur_sym, agg["cash_principal"])),
+                _h(meta),
+                _h(interest_s),
+                _h(_fmt_money(cur_sym, agg["cash"])),
+            )
+        )
+    fund_block = ""
+    if fund_rows:
+        fund_block = """
+<h2>货币基金现金</h2>
+<table>
+<thead><tr>
+<th class="txt">市场</th><th class="num">本金</th><th class="txt">年化/天数</th>
+<th class="num">累计现金收益</th><th class="num">现金合计</th>
+</tr></thead>
+<tbody>{}</tbody>
+</table>
+""".format("".join(fund_rows))
 
     if rows_ok:
         pos_tr = "".join(
@@ -216,6 +411,7 @@ td.sym {{ text-align: left; font-weight: 600; word-break: break-all; }}
 th.txt {{ text-align: center; }}
 th.sym {{ text-align: left; }}
 th.num {{ text-align: right; }}
+.pnl {{ font-weight: 600; }}
 .notes {{ margin-top: 20px; font-size: 13px; color: #555; }}
 .note2 {{ font-size: 12px; color: #666; margin: 8px 0 14px; line-height: 1.45; }}
 </style>
@@ -223,11 +419,13 @@ th.num {{ text-align: right; }}
 <body>
 <h1>母亲资产余额</h1>
 <p class="meta">生成时间：{_h(ts.strftime("%Y-%m-%d %H:%M:%S"))}</p>
+<p class="note2">{_h(_footnote())}</p>
+{fund_block}
 <h2>按市场汇总</h2>
-<p class="note2">合计 = 现金余额 + 股票市值（现价×股数）</p>
 <table>
 <thead><tr>
-<th class="txt">市场</th><th class="num">现金余额</th><th class="num">股票市值</th><th class="num">合计总资产</th>
+<th class="txt">市场</th><th class="num">货币基金本金</th><th class="num">累计现金收益</th>
+<th class="num">现金合计</th><th class="num">股票市值</th><th class="num">合计总资产</th>
 </tr></thead>
 <tbody>{sum_tr}</tbody>
 </table>
@@ -238,8 +436,12 @@ th.num {{ text-align: right; }}
 """
 
 
-def build_notes_block(rows_skip: list, rows_price_fail: list) -> str:
+def build_notes_block(rows_skip: list, rows_price_fail: list, config_warnings: list) -> str:
     parts = []
+    if config_warnings:
+        parts.append("配置提示")
+        parts.extend(f"· {w}" for w in config_warnings)
+        parts.append("")
     if rows_skip:
         parts.append("未计入（缺少或无效 quantity）")
         parts.extend(f"· {r}" for r in rows_skip)
@@ -252,22 +454,21 @@ def build_notes_block(rows_skip: list, rows_price_fail: list) -> str:
 
 def run_report():
     ts = datetime.now()
-    records, cash_by_market = load_mother_assets_source()
+    as_of = ts.date()
+    records, cash_by_market, money_funds_cfg, config_warnings = load_mother_assets_source()
 
     aggregates = {
         MARKET_US: _empty_market_totals(),
         MARKET_HK: _empty_market_totals(),
     }
-    for market in (MARKET_US, MARKET_HK):
-        cash = cash_by_market.get(market, 0.0) or 0.0
-        aggregates[market]["cash"] = cash
+    apply_cash_fund_totals(aggregates, cash_by_market, money_funds_cfg, as_of)
 
     rows_ok = []
     rows_skip = []
     rows_price_fail = []
 
     has_config = (
-        any(cash_by_market.get(m, 0) > 0 for m in (MARKET_US, MARKET_HK))
+        any(aggregates[m]["cash"] > 0 or aggregates[m]["cash_principal"] > 0 for m in (MARKET_US, MARKET_HK))
         or bool(records)
     )
     if not has_config:
@@ -325,9 +526,9 @@ def run_report():
         agg = aggregates[market]
         agg["total"] = agg["cash"] + agg["stock_value"]
 
-    notes = build_notes_block(rows_skip, rows_price_fail)
-    plain = build_plain_report(ts, aggregates, cash_by_market, rows_ok, notes)
-    html_doc = build_html_report(ts, aggregates, cash_by_market, rows_ok, notes)
+    notes = build_notes_block(rows_skip, rows_price_fail, config_warnings)
+    plain = build_plain_report(ts, aggregates, rows_ok, notes)
+    html_doc = build_html_report(ts, aggregates, rows_ok, notes)
 
     print(f"[{ts}]\n{plain}\n")
     send_email(

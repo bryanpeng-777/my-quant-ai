@@ -1,7 +1,17 @@
 {
   "cash_balances": {
     "US": 16200,
-    "HK": 8000
+    "HK": 8498.47
+  },
+  "money_funds": {
+    "US": {
+      "annual_rate_pct": 4.5,
+      "deposit_date": "2025-01-01"
+    },
+    "HK": {
+      "annual_rate_pct": 3.8,
+      "deposit_date": "2025-01-01"
+    }
   },
   "records": [
     {
