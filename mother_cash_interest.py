@@ -6,8 +6,8 @@
 - 默认 compound_daily：每日收益并入本金，次日按新本金计息（货币基金红利再投资）
 - 可选 simple_daily：每日按初始本金计息，收益不复利
 
-存放天数 = 自 deposit_date 次日起至 as_of（含 as_of）的计息日数；
-deposit_date 当日不计息（与常见 T 日申购 T+1 起息一致）。
+存放天数 = 自 deposit_date（含）至 as_of（含）的自然日数；
+起息日当天即参与计息。
 """
 from __future__ import annotations
 
@@ -49,9 +49,10 @@ def daily_rate(annual_rate_pct: float, on_day: date) -> float:
 
 
 def count_accrual_days(deposit_date: date, as_of: date) -> int:
-    if as_of <= deposit_date:
+    """含起息日与报告日；若报告日早于起息日则为 0。"""
+    if as_of < deposit_date:
         return 0
-    return (as_of - deposit_date).days
+    return (as_of - deposit_date).days + 1
 
 
 def accrue_money_fund_interest(
@@ -79,7 +80,7 @@ def accrue_money_fund_interest(
     interest_total = 0.0
     daily_details: list[tuple[date, float, float]] = []
 
-    current = deposit_date + timedelta(days=1)
+    current = deposit_date
     while current <= as_of:
         rate = daily_rate(annual_rate_pct, current)
         if method == METHOD_SIMPLE:
@@ -122,7 +123,7 @@ def format_result(r: MoneyFundInterestResult, currency: str = "") -> str:
     lines = [
         f"本金: {sym}{r.principal:,.2f}",
         f"年化: {r.annual_rate_pct:.4f}%",
-        f"起息日: {r.deposit_date}（当日不计息）",
+        f"起息日: {r.deposit_date}（含当日计息）",
         f"计息至: {r.as_of}（含）",
         f"计息天数: {r.accrual_days}",
         f"计息方式: {r.method}",

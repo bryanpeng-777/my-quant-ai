@@ -13,6 +13,9 @@ import os
 from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
+from zoneinfo import ZoneInfo
+
+REPORT_TZ = ZoneInfo("Asia/Shanghai")
 
 from mother_cash_interest import (
     METHOD_COMPOUND,
@@ -189,7 +192,18 @@ def _empty_market_totals():
     }
 
 
-def apply_cash_fund_totals(aggregates: dict, cash_by_market: dict, money_funds_cfg: dict, as_of: date):
+def report_as_of_date() -> date:
+    """报告计息截止日：北京时间自然日（与 21:00 定时一致）。"""
+    return datetime.now(REPORT_TZ).date()
+
+
+def apply_cash_fund_totals(
+    aggregates: dict,
+    cash_by_market: dict,
+    money_funds_cfg: dict,
+    as_of: date,
+    config_warnings: list,
+):
     for market in (MARKET_US, MARKET_HK):
         agg = aggregates[market]
         cfg = money_funds_cfg.get(market)
@@ -211,6 +225,15 @@ def apply_cash_fund_totals(aggregates: dict, cash_by_market: dict, money_funds_c
             agg["fund_deposit_date"] = cfg["deposit_date"]
             agg["fund_accrual_method"] = result.method
             agg["fund_interest_enabled"] = True
+            dep = cfg["deposit_date"]
+            if as_of < dep:
+                config_warnings.append(
+                    f"{get_market_name(market)} 起息日 {dep} 晚于报告日 {as_of}，累计收益为 0"
+                )
+            elif result.accrual_days == 0:
+                config_warnings.append(
+                    f"{get_market_name(market)} 起息日 {dep}，报告日 {as_of}，计息 0 天"
+                )
         else:
             agg["cash_principal"] = principal
             agg["cash_interest"] = 0.0
@@ -259,7 +282,8 @@ def _fund_detail_lines(market: str, aggregates: dict) -> list[str]:
         method = agg.get("fund_accrual_method") or METHOD_COMPOUND
         method_cn = "按日复利" if method == METHOD_COMPOUND else "按日单利"
         lines.append(f"  计息方式       {method_cn}")
-        lines.append(f"  计息天数       {agg['fund_days']} 天（{dep} 次日起至报告日）")
+        lines.append(f"  配置起息日     {dep}")
+        lines.append(f"  计息天数       {agg['fund_days']} 天（{dep} 至报告日，含首尾）")
         lines.append(f"  累计现金收益   {_fmt_money(cur_sym, agg['cash_interest'], signed=True)}")
     else:
         lines.append("  （未配置 money_funds，现金收益按 0）")
@@ -270,7 +294,7 @@ def _fund_detail_lines(market: str, aggregates: dict) -> list[str]:
 def _footnote() -> str:
     return (
         "说明：现金收益由 mother_cash_interest.py 逐日计息（闰年按 365/366 天折算日利率）；"
-        "默认按日复利。deposit_date 为申购日，次日起息。本地核验："
+        "默认按日复利；deposit_date 为起息日（含当日）。报告日取北京时间。本地核验："
         "python mother_cash_interest.py --principal 本金 --rate 年化 --from 起息日"
     )
 
@@ -278,7 +302,7 @@ def _footnote() -> str:
 def build_plain_report(ts, aggregates, rows_ok, notes) -> str:
     lines = [
         "【母亲资产余额】",
-        f"生成时间: {ts.strftime('%Y-%m-%d %H:%M:%S')}",
+        f"生成时间: {ts.strftime('%Y-%m-%d %H:%M:%S')} (北京时间)",
         "",
         "════════ 货币基金现金 ════════",
     ]
@@ -435,7 +459,7 @@ th.num {{ text-align: right; }}
 </head>
 <body>
 <h1>母亲资产余额</h1>
-<p class="meta">生成时间：{_h(ts.strftime("%Y-%m-%d %H:%M:%S"))}</p>
+<p class="meta">生成时间：{_h(ts.strftime("%Y-%m-%d %H:%M:%S"))}（北京时间）</p>
 <p class="note2">{_h(_footnote())}</p>
 {fund_block}
 <h2>按市场汇总</h2>
@@ -470,15 +494,17 @@ def build_notes_block(rows_skip: list, rows_price_fail: list, config_warnings: l
 
 
 def run_report():
-    ts = datetime.now()
-    as_of = ts.date()
+    ts = datetime.now(REPORT_TZ)
+    as_of = report_as_of_date()
     records, cash_by_market, money_funds_cfg, config_warnings = load_mother_assets_source()
 
     aggregates = {
         MARKET_US: _empty_market_totals(),
         MARKET_HK: _empty_market_totals(),
     }
-    apply_cash_fund_totals(aggregates, cash_by_market, money_funds_cfg, as_of)
+    apply_cash_fund_totals(
+        aggregates, cash_by_market, money_funds_cfg, as_of, config_warnings
+    )
 
     rows_ok = []
     rows_skip = []
