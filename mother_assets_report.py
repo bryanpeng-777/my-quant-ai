@@ -177,6 +177,52 @@ def _h(s) -> str:
     return html.escape(str(s), quote=True)
 
 
+# 邮件客户端（尤其手机 QQ 邮箱）对多列表格支持差，采用卡片 + 两列键值布局
+_HTML_BODY = (
+    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;"
+    "margin:0;padding:12px;font-size:15px;color:#222;line-height:1.5;"
+    "max-width:100%;overflow-x:hidden;word-wrap:break-word;"
+)
+_HTML_CARD = (
+    "border:1px solid #e0e0e0;border-radius:8px;padding:12px 14px;"
+    "margin:0 0 12px;background:#fafbfc;max-width:100%;box-sizing:border-box;"
+)
+_HTML_CARD_TITLE = "font-size:16px;font-weight:600;margin:0 0 10px;color:#111;"
+_HTML_KV_TABLE = "width:100%;border-collapse:collapse;table-layout:auto;"
+_HTML_KV_LABEL = (
+    "padding:6px 8px 6px 0;color:#666;font-size:14px;vertical-align:top;"
+    "width:42%;word-break:break-word;"
+)
+_HTML_KV_VALUE = (
+    "padding:6px 0;text-align:right;font-size:14px;vertical-align:top;"
+    "white-space:normal;word-break:break-all;font-variant-numeric:tabular-nums;"
+)
+_HTML_KV_VALUE_PNL = _HTML_KV_VALUE + "font-weight:600;color:#0a7a2f;"
+_HTML_H2 = (
+    "font-size:16px;margin:20px 0 10px;padding-bottom:6px;"
+    "border-bottom:1px solid #e0e0e0;font-weight:600;"
+)
+_HTML_META = "color:#666;font-size:13px;margin:0 0 14px;line-height:1.45;"
+_HTML_NOTE = "font-size:12px;color:#666;margin:0 0 14px;line-height:1.45;"
+
+
+def _html_kv_row(label: str, value: str, *, pnl: bool = False) -> str:
+    val_style = _HTML_KV_VALUE_PNL if pnl else _HTML_KV_VALUE
+    return (
+        f"<tr><td style=\"{_HTML_KV_LABEL}\">{_h(label)}</td>"
+        f"<td style=\"{val_style}\">{_h(value)}</td></tr>"
+    )
+
+
+def _html_market_card(title: str, rows_html: str) -> str:
+    return (
+        f"<div style=\"{_HTML_CARD}\">"
+        f"<div style=\"{_HTML_CARD_TITLE}\">{_h(title)}</div>"
+        f"<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"{_HTML_KV_TABLE}\">"
+        f"<tbody>{rows_html}</tbody></table></div>"
+    )
+
+
 def _empty_market_totals():
     return {
         "cash_principal": 0.0,
@@ -350,126 +396,97 @@ def build_plain_report(ts, aggregates, rows_ok, notes) -> str:
 
 
 def build_html_report(ts, aggregates, rows_ok, notes) -> str:
-    sum_tr = "".join(
-        "<tr><td class=\"txt\">{}</td><td class=\"num\">{}</td><td class=\"num pnl\">{}</td>"
-        "<td class=\"num\">{}</td><td class=\"num\">{}</td><td class=\"num\">{}</td></tr>".format(
-            _h(a[0]), _h(a[1]), _h(a[2]), _h(a[3]), _h(a[4]), _h(a[5])
-        )
-        for a in _summary_rows(aggregates)
-    )
-
-    fund_rows = []
+    fund_cards = []
     for market in (MARKET_US, MARKET_HK):
         agg = aggregates[market]
         if agg["cash_principal"] <= 0 and not agg["fund_interest_enabled"]:
             continue
         cur_sym = get_currency_symbol(market)
         nm = get_market_name(market)
+        rows = [_html_kv_row("本金", _fmt_money(cur_sym, agg["cash_principal"]))]
         if agg["fund_interest_enabled"]:
             dep = agg["fund_deposit_date"].strftime("%Y-%m-%d")
             method = agg.get("fund_accrual_method") or METHOD_COMPOUND
-            method_cn = "复利" if method == METHOD_COMPOUND else "单利"
-            meta = f"{agg['fund_rate_pct']:.2f}% · {method_cn} · {agg['fund_days']}天 · {dep}起"
-            interest_s = _fmt_money(cur_sym, agg["cash_interest"], signed=True)
+            method_cn = "按日复利" if method == METHOD_COMPOUND else "按日单利"
+            rows.append(_html_kv_row("年化收益率", f"{agg['fund_rate_pct']:.2f}%"))
+            rows.append(_html_kv_row("计息方式", method_cn))
+            rows.append(_html_kv_row("配置起息日", dep))
+            rows.append(_html_kv_row("计息天数", f"{agg['fund_days']} 天"))
+            rows.append(
+                _html_kv_row(
+                    "累计现金收益",
+                    _fmt_money(cur_sym, agg["cash_interest"], signed=True),
+                    pnl=True,
+                )
+            )
         else:
-            meta = "未配置 money_funds"
-            interest_s = _fmt_money(cur_sym, 0)
-        fund_rows.append(
-            "<tr><td class=\"txt\">{}</td><td class=\"num\">{}</td><td class=\"txt\">{}</td>"
-            "<td class=\"num pnl\">{}</td><td class=\"num\">{}</td></tr>".format(
-                _h(nm),
-                _h(_fmt_money(cur_sym, agg["cash_principal"])),
-                _h(meta),
-                _h(interest_s),
-                _h(_fmt_money(cur_sym, agg["cash"])),
-            )
-        )
-    fund_block = ""
-    if fund_rows:
-        fund_block = """
-<h2>货币基金现金</h2>
-<table>
-<thead><tr>
-<th class="txt">市场</th><th class="num">本金</th><th class="txt">年化/天数</th>
-<th class="num">累计现金收益</th><th class="num">现金合计</th>
-</tr></thead>
-<tbody>{}</tbody>
-</table>
-""".format("".join(fund_rows))
+            rows.append(_html_kv_row("货币基金", "未配置 money_funds"))
+        rows.append(_html_kv_row("现金合计", _fmt_money(cur_sym, agg["cash"])))
+        fund_cards.append(_html_market_card(f"{nm} · 货币基金", "".join(rows)))
 
-    if rows_ok:
-        pos_tr = "".join(
-            "<tr><td class=\"txt\">{}</td><td class=\"txt\">{}</td><td class=\"sym\">{}</td>"
-            "<td class=\"num\">{}</td><td class=\"num\">{}</td><td class=\"num\">{}</td>"
-            "<td class=\"num\">{}</td></tr>".format(
-                _h(r["num"]),
-                _h(r["market"]),
-                _h(r["symbol"]),
-                _h(r["qty"]),
-                _h(r["current"]),
-                _h(r["value"]),
-                _h(r.get("extra") or "—"),
-            )
-            for r in rows_ok
+    fund_block = ""
+    if fund_cards:
+        fund_block = (
+            f"<h2 style=\"{_HTML_H2}\">货币基金现金</h2>" + "".join(fund_cards)
         )
-        pos_block = """
-<h2>逐笔持仓</h2>
-<table>
-<thead><tr>
-<th class="txt">#</th><th class="txt">市场</th><th class="sym">代码</th><th class="num">股数</th>
-<th class="num">现价</th><th class="num">市值</th><th class="num">成本/盈亏(参考)</th>
-</tr></thead>
-<tbody>{}</tbody>
-</table>
-""".format(pos_tr)
-    else:
-        pos_block = ""
+
+    summary_cards = []
+    for row in _summary_rows(aggregates):
+        m, principal, interest, cash, stock, total = row
+        if principal == "—" and stock == "—":
+            continue
+        summary_cards.append(
+            _html_market_card(
+                m,
+                "".join(
+                    [
+                        _html_kv_row("货币基金本金", principal),
+                        _html_kv_row("累计现金收益", interest, pnl=True),
+                        _html_kv_row("现金合计", cash),
+                        _html_kv_row("股票市值", stock),
+                        _html_kv_row("合计总资产", total),
+                    ]
+                ),
+            )
+        )
+
+    pos_cards = []
+    for r in rows_ok:
+        title = f"#{r['num']} {r['symbol']}（{r['market']}）"
+        rows = [
+            _html_kv_row("股数", r["qty"]),
+            _html_kv_row("现价", r["current"]),
+            _html_kv_row("市值", r["value"]),
+        ]
+        if r.get("extra") and r["extra"] != "—":
+            rows.append(_html_kv_row("成本/盈亏", r["extra"]))
+        pos_cards.append(_html_market_card(title, "".join(rows)))
+
+    pos_block = ""
+    if pos_cards:
+        pos_block = f"<h2 style=\"{_HTML_H2}\">逐笔持仓</h2>" + "".join(pos_cards)
 
     notes_html = ""
     if notes:
         notes_html = (
-            "<div class=\"notes\"><pre style=\"white-space:pre-wrap;margin:0;\">"
-            f"{_h(notes)}</pre></div>"
+            "<div style=\"margin-top:16px;font-size:13px;color:#555;"
+            "white-space:pre-wrap;word-break:break-word;\">"
+            f"{_h(notes)}</div>"
         )
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  margin: 12px; font-size: 15px; color: #222; line-height: 1.45; }}
-h1 {{ font-size: 18px; margin: 0 0 6px; font-weight: 600; }}
-.meta {{ color: #666; font-size: 13px; margin-bottom: 18px; }}
-h2 {{ font-size: 16px; margin: 22px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #e0e0e0; font-weight: 600; }}
-table {{ width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }}
-th, td {{ border: 1px solid #ddd; padding: 10px 6px; font-size: 13px; vertical-align: middle; }}
-th {{ background: #f2f5f9; font-weight: 600; text-align: right; }}
-td.num {{ text-align: right; font-variant-numeric: tabular-nums; }}
-td.txt {{ text-align: center; }}
-td.sym {{ text-align: left; font-weight: 600; word-break: break-all; }}
-th.txt {{ text-align: center; }}
-th.sym {{ text-align: left; }}
-th.num {{ text-align: right; }}
-.pnl {{ font-weight: 600; }}
-.notes {{ margin-top: 20px; font-size: 13px; color: #555; }}
-.note2 {{ font-size: 12px; color: #666; margin: 8px 0 14px; line-height: 1.45; }}
-</style>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 </head>
-<body>
-<h1>母亲资产余额</h1>
-<p class="meta">生成时间：{_h(ts.strftime("%Y-%m-%d %H:%M:%S"))}（北京时间）</p>
-<p class="note2">{_h(_footnote())}</p>
+<body style="{_HTML_BODY}">
+<h1 style="font-size:18px;margin:0 0 8px;font-weight:600;">母亲资产余额</h1>
+<p style="{_HTML_META}">生成时间：{_h(ts.strftime("%Y-%m-%d %H:%M:%S"))}（北京时间）</p>
+<p style="{_HTML_NOTE}">{_h(_footnote())}</p>
 {fund_block}
-<h2>按市场汇总</h2>
-<table>
-<thead><tr>
-<th class="txt">市场</th><th class="num">货币基金本金</th><th class="num">累计现金收益</th>
-<th class="num">现金合计</th><th class="num">股票市值</th><th class="num">合计总资产</th>
-</tr></thead>
-<tbody>{sum_tr}</tbody>
-</table>
+<h2 style="{_HTML_H2}">按市场汇总</h2>
+{"".join(summary_cards) if summary_cards else "<p style=\"color:#666;\">暂无汇总数据</p>"}
 {pos_block}
 {notes_html}
 </body>
