@@ -2,12 +2,14 @@
 持仓总成本与当前总盈亏报告
 从 purchase_records.json 读取：`records` 逐笔；可选 `total_investment`、`current_total_assets`、`others_assets`（按市场）。
 汇总行：本轮生意盈亏 = 当前总市值 − 生意总投资；
-「投资占比」= 生意总投资 ÷（current_total_assets − others_assets），后者为扣减他人资产后的当前总资产。
+「投资占比」= 生意总投资 ÷ 扣减后的当前总资产。
+美股：当前总资产 = purchase_records.current_total_assets − mother_assets.json 折算的母亲美元资产；
+港股仍用 others_assets 扣减（待后续扩展）。
 逐笔明细盈亏仍按买入价×数量与现价计算。
 """
 import json
 import os
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from email_report_layout import (
@@ -19,6 +21,7 @@ from email_report_layout import (
     notes_block,
     section_heading,
 )
+from mother_assets_valuation import compute_mother_assets_totals
 from stock_utils import (
     MARKET_US,
     MARKET_HK,
@@ -228,9 +231,18 @@ def _effective_investment(aggregates: dict, investment_override: dict, market: s
 def _ratio_footnote() -> str:
     return (
         "说明：「投资占比」= 生意总投资 ÷「当前总资产」。"
-        "其中当前总资产 = 配置项 current_total_assets − others_assets（他人资产，同市场同币种）；"
-        "未配置他人资产时按 0 计。与股票市值无关。"
+        "美股当前总资产 = 配置总资产(current_total_assets) − 母亲资产(mother_assets.json 按现价与货基收益汇总)；"
+        "港股当前总资产 = 配置总资产 − others_assets。与持仓市值无关。"
     )
+
+
+def _asset_deduction(
+    market: str, others_assets: dict, mother_totals: dict
+) -> tuple[float, str]:
+    """返回 (扣减额, 展示名称)。"""
+    if market == MARKET_US:
+        return float(mother_totals.get(MARKET_US, 0) or 0), "母亲资产"
+    return _others_numeric(others_assets, market), "他人资产"
 
 
 def _others_numeric(others_assets: dict, market: str) -> float:
@@ -243,13 +255,16 @@ def _investment_ratio_rows(
     investment_override: dict,
     assets_gross: dict,
     others_assets: dict,
+    mother_totals: dict,
 ) -> list[tuple]:
     """
-    分母为扣减后的当前总资产 (gross − others)，仅当分母 > 0 时输出。
-    元组: (市场名, 货币符号, inv, gross, others, net, pct_str)
+    分母为扣减后的当前总资产 (gross − 扣减项)，仅当分母 > 0 时输出。
+    元组: (市场名, 货币符号, inv, gross, deducted, net, pct_str, 扣减项名称)
     """
     rows = []
     for market in (MARKET_US, MARKET_HK):
+        if market == MARKET_HK:
+            continue
         gross = assets_gross.get(market)
         if gross is None or gross <= 0:
             continue
@@ -258,8 +273,8 @@ def _investment_ratio_rows(
         value = agg["total_value"]
         if summed_cost <= 0 and value <= 0:
             continue
-        others = _others_numeric(others_assets, market)
-        net = gross - others
+        deducted, deduct_label = _asset_deduction(market, others_assets, mother_totals)
+        net = gross - deducted
         if net <= 0:
             continue
         name = get_market_name(market)
@@ -267,7 +282,7 @@ def _investment_ratio_rows(
         inv = _effective_investment(aggregates, investment_override, market)
         pct = (inv / net) * 100.0
         rows.append(
-            (name, cur_sym, inv, gross, others, net, f"{pct:.2f}%")
+            (name, cur_sym, inv, gross, deducted, net, f"{pct:.2f}%", deduct_label)
         )
     return rows
 
@@ -276,22 +291,26 @@ def _ratio_net_nonpositive_messages(
     aggregates: dict,
     assets_gross: dict,
     others_assets: dict,
+    mother_totals: dict,
 ) -> list[str]:
     msgs = []
     for market in (MARKET_US, MARKET_HK):
+        if market == MARKET_HK:
+            continue
         gross = assets_gross.get(market)
         if gross is None or gross <= 0:
             continue
         agg = aggregates[market]
         if agg["total_cost"] <= 0 and agg["total_value"] <= 0:
             continue
-        others = _others_numeric(others_assets, market)
-        net = gross - others
+        deducted, deduct_label = _asset_deduction(market, others_assets, mother_totals)
+        net = gross - deducted
         if net <= 0:
             nm = get_market_name(market)
             cur_sym = get_currency_symbol(market)
             msgs.append(
-                f"{nm}：配置总资产 {_fmt_money(cur_sym, gross)} 减去他人资产 {_fmt_money(cur_sym, others)} 后≤0，无法计算投资占比。"
+                f"{nm}：配置总资产 {_fmt_money(cur_sym, gross)} 减去{deduct_label} "
+                f"{_fmt_money(cur_sym, deducted)} 后≤0，无法计算投资占比。"
             )
     return msgs
 
@@ -304,6 +323,7 @@ def build_plain_report(
     others_assets: dict,
     rows_ok: list,
     notes: str,
+    mother_totals: dict,
 ) -> str:
     """窄屏友好的纯文本：汇总块 + 每只股票单独一块。"""
     lines = [
@@ -323,10 +343,10 @@ def build_plain_report(
     lines.append("")
 
     ratio_rows = _investment_ratio_rows(
-        aggregates, investment_override, assets_gross, others_assets
+        aggregates, investment_override, assets_gross, others_assets, mother_totals
     )
     ratio_warn = _ratio_net_nonpositive_messages(
-        aggregates, assets_gross, others_assets
+        aggregates, assets_gross, others_assets, mother_totals
     )
     if ratio_rows:
         lines.append(
@@ -334,10 +354,10 @@ def build_plain_report(
         )
         lines.append(_ratio_footnote())
         lines.append("")
-        for name, cur_sym, inv, gross, others, net, pct_s in ratio_rows:
+        for name, cur_sym, inv, gross, deducted, net, pct_s, deduct_label in ratio_rows:
             lines.append(f"{name}")
             lines.append(f"  配置总资产       {_fmt_money(cur_sym, gross)}")
-            lines.append(f"  他人资产         {_fmt_money(cur_sym, others)}")
+            lines.append(f"  {deduct_label:<8} {_fmt_money(cur_sym, deducted)}")
             lines.append(f"  当前总资产       {_fmt_money(cur_sym, net)}（扣减后）")
             lines.append(f"  生意总投资       {_fmt_money(cur_sym, inv)}")
             lines.append(f"  投资占比         {pct_s}")
@@ -381,6 +401,7 @@ def build_html_report(
     others_assets: dict,
     rows_ok: list,
     notes: str,
+    mother_totals: dict,
 ) -> str:
     """手机邮箱友好：卡片 + 键值对布局。"""
     summary_cards = []
@@ -401,22 +422,22 @@ def build_html_report(
         )
 
     ratio_rows = _investment_ratio_rows(
-        aggregates, investment_override, assets_gross, others_assets
+        aggregates, investment_override, assets_gross, others_assets, mother_totals
     )
     ratio_warn = _ratio_net_nonpositive_messages(
-        aggregates, assets_gross, others_assets
+        aggregates, assets_gross, others_assets, mother_totals
     )
     ratio_block = ""
     if ratio_rows:
         ratio_cards = []
-        for nm, cur_sym, iv, g, oth, nt, pct_s in ratio_rows:
+        for nm, cur_sym, iv, g, deducted, nt, pct_s, deduct_label in ratio_rows:
             ratio_cards.append(
                 market_card(
                     nm,
                     "".join(
                         [
                             kv_row("配置总资产", _fmt_money(cur_sym, g)),
-                            kv_row("他人资产", _fmt_money(cur_sym, oth)),
+                            kv_row(deduct_label, _fmt_money(cur_sym, deducted)),
                             kv_row("当前总资产(扣减后)", _fmt_money(cur_sym, nt)),
                             kv_row("生意总投资", _fmt_money(cur_sym, iv)),
                             kv_row("投资占比", pct_s),
@@ -491,7 +512,13 @@ def build_notes_block(rows_skip_qty: list, rows_price_fail: list) -> str:
 
 def run_report():
     ts = datetime.now()
+    as_of = ts.date()
     records, investment_override, assets_gross, others_assets = load_portfolio_source()
+    mother_totals = compute_mother_assets_totals(as_of)
+    print(
+        f"[{ts}] 母亲资产折算(用于扣减): "
+        f"US=${mother_totals[MARKET_US]:,.2f} HK=HK${mother_totals[MARKET_HK]:,.2f}"
+    )
 
     aggregates = {MARKET_US: _empty_market_totals(), MARKET_HK: _empty_market_totals()}
     rows_ok = []
@@ -566,6 +593,7 @@ def run_report():
         others_assets,
         rows_ok,
         notes,
+        mother_totals,
     )
     html_doc = build_html_report(
         ts,
@@ -575,6 +603,7 @@ def run_report():
         others_assets,
         rows_ok,
         notes,
+        mother_totals,
     )
 
     print(f"[{ts}]\n{plain}\n")

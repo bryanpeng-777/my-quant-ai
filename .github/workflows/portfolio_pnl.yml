@@ -9,6 +9,10 @@ on:
     paths:
       - 'portfolio_pnl.py'
       - 'email_report_layout.py'
+      - 'mother_assets_valuation.py'
+      - 'mother_assets_report.py'
+      - 'mother_cash_interest.py'
+      - 'mother_assets.json'
       - 'purchase_records.json'
       - 'stock_utils.py'
 
