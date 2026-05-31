@@ -1,9 +1,11 @@
 {
   "total_investment": {
-    "US": 53346.53
+    "US": 53759.53,
+    "HK": 94000
   },
   "current_total_assets": {
-    "US": 181035.0
+    "US": 181035.0,
+    "HK": 94000
   },
   "records": [
     {
@@ -25,6 +27,16 @@
       "symbol": "BRK-B",
       "purchase_price": 480.138,
       "quantity": 64
+    },
+    {
+      "symbol": "Dell",
+      "purchase_price": 413.95,
+      "quantity": 1
+    },
+    {
+      "symbol": "0700",
+      "purchase_price": 470,
+      "quantity": 200
     }
   ]
 }

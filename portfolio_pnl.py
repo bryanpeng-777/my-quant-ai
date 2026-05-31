@@ -263,8 +263,6 @@ def _investment_ratio_rows(
     """
     rows = []
     for market in (MARKET_US, MARKET_HK):
-        if market == MARKET_HK:
-            continue
         gross = assets_gross.get(market)
         if gross is None or gross <= 0:
             continue
@@ -295,8 +293,6 @@ def _ratio_net_nonpositive_messages(
 ) -> list[str]:
     msgs = []
     for market in (MARKET_US, MARKET_HK):
-        if market == MARKET_HK:
-            continue
         gross = assets_gross.get(market)
         if gross is None or gross <= 0:
             continue
