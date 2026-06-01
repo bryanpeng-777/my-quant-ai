@@ -1,17 +1,12 @@
 {
   // total_investment：按市场「生意总投资」（配置键名不变）；current_total_assets：名下「配置总资产」（同币种）。
-  // 投资占比分母「当前总资产」：美股 = current_total_assets − mother_assets.json 汇总；港股 = current_total_assets − others_assets。
-  // 三者均可只配 US 数字简写，规则同 total_investment。
+  // 投资占比分母「当前总资产」：配置总资产(美元/港币) − 母亲总资产(美元+港币按汇率折算为对应币种)。
   "total_investment": {
     "US": 50000.00,
     "HK": 0
   },
   "current_total_assets": {
     "US": 120000.00,
-    "HK": 0
-  },
-  "others_assets": {
-    "US": 0,
     "HK": 0
   },
   "records": [

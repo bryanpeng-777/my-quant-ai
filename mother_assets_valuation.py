@@ -41,3 +41,19 @@ def compute_mother_assets_totals(as_of: date) -> dict:
         agg = aggregates[market]
         out[market] = round(agg["cash"] + agg["stock_value"], 2)
     return out
+
+
+def mother_assets_deduction_for_market(
+    mother_totals: dict, market: str, usd_hkd_rate: float
+) -> float:
+    """
+    母亲名下美元+港币资产合计，折算为指定市场币种，用于扣减配置总资产。
+    usd_hkd_rate：1 USD 兑多少 HKD。
+    """
+    mother_us = float(mother_totals.get(MARKET_US, 0) or 0)
+    mother_hk = float(mother_totals.get(MARKET_HK, 0) or 0)
+    if usd_hkd_rate <= 0:
+        raise ValueError("usd_hkd_rate must be positive")
+    if market == MARKET_US:
+        return round(mother_us + mother_hk / usd_hkd_rate, 2)
+    return round(mother_hk + mother_us * usd_hkd_rate, 2)

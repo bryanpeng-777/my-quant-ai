@@ -5,7 +5,7 @@
   },
   "current_total_assets": {
     "US": 181035.0,
-    "HK": 94000
+    "HK": 1417850.76
   },
   "records": [
     {
@@ -35,8 +35,8 @@
     },
     {
       "symbol": "0700",
-      "purchase_price": 470,
-      "quantity": 200
+      "purchase_price": 468.36,
+      "quantity": 300
     }
   ]
 }

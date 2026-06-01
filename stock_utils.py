@@ -115,6 +115,28 @@ def detect_market(symbol):
     # 美股：其他情况
     return MARKET_US
 
+# 港元联系汇率区间中枢，行情不可用时作兜底
+DEFAULT_USD_HKD_RATE = 7.83
+
+
+def get_usd_hkd_rate():
+    """
+    获取 1 USD 兑多少 HKD（USD/HKD 汇率）。
+
+    Returns:
+        float: 汇率；拉取失败时返回 DEFAULT_USD_HKD_RATE
+    """
+    try:
+        ticker = yf.Ticker("USDHKD=X")
+        df = ticker.history(period="5d")
+        if df is not None and len(df) > 0:
+            rate = float(df["Close"].iloc[-1])
+            if rate > 0:
+                return rate
+    except Exception as e:
+        print(f"[{datetime.now()}] ⚠️  获取 USD/HKD 汇率失败，使用默认 {DEFAULT_USD_HKD_RATE}: {e}")
+    return DEFAULT_USD_HKD_RATE
+
 # ==========================================
 # MACD 计算
 # ==========================================
