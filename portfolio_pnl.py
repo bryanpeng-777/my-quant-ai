@@ -5,7 +5,7 @@
 本轮生意盈亏 = 扣减后当前总市值 − 扣减后生意总投资；
 「投资占比」= 生意总投资 ÷ 扣减后的当前总资产。
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
-逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_vwap、bogle_enterprise_growth 手动填写，未填为 0。
+逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_vwap、bogle_enterprise_growth 手动填写，未填为 0；博格买入欲望按 (15-市盈率)/100+股息率+bogle_enterprise_growth/100 计算。
 """
 import json
 import os
@@ -30,7 +30,9 @@ from mother_assets_valuation import (
 from stock_utils import (
     MARKET_US,
     MARKET_HK,
+    build_bogle_buying_desire_breakdown,
     detect_market,
+    get_bogle_fundamentals,
     get_current_stock_price,
     get_currency_symbol,
     get_display_symbol,
@@ -390,6 +392,8 @@ def build_plain_report(
             lines.append(f"  买入价     {r['buy']}    现价 {r['current']}")
             lines.append(f"  财报日VWAP {r['earnings_vwap']}")
             lines.append(f"  博格企业增长 {r['bogle_enterprise_growth']}")
+            lines.append(f"  博格买入欲望 {r['bogle_buying_desire']}")
+            lines.append(f"             {r['bogle_buying_desire_detail']}")
             lines.append(f"  成本       {r['cost']}    市值 {r['value']}")
             lines.append(f"  盈亏       {r['pnl']}")
         lines.append("────────────────────────")
@@ -490,6 +494,8 @@ def build_html_report(
                         kv_row("现价", r["current"]),
                         kv_row("财报日VWAP", r["earnings_vwap"]),
                         kv_row("博格企业增长", r["bogle_enterprise_growth"]),
+                        kv_row("博格买入欲望", r["bogle_buying_desire"]),
+                        kv_row("　计算过程", r["bogle_buying_desire_detail"]),
                         kv_row("成本", r["cost"]),
                         kv_row("市值", r["value"]),
                         kv_row("盈亏", r["pnl"], pnl=True),
@@ -619,6 +625,14 @@ def run_report():
         aggregates[market]["total_value"] += value
         aggregates[market]["total_pnl"] += pnl  # 仅备用；汇总本轮生意盈亏以总市值−生意总投资为准
 
+        bogle_growth = _parse_record_optional_float(record, "bogle_enterprise_growth")
+        fundamentals = get_bogle_fundamentals(symbol, market)
+        bogle_desire_result, bogle_desire_detail = build_bogle_buying_desire_breakdown(
+            fundamentals["pe"],
+            fundamentals["dividend_yield"],
+            bogle_growth,
+        )
+
         rows_ok.append({
             "num": i + 1,
             "market": mname,
@@ -629,9 +643,9 @@ def run_report():
             "earnings_vwap": _fmt_money(
                 cur_sym, _parse_record_optional_float(record, "earnings_vwap")
             ),
-            "bogle_enterprise_growth": _fmt_money(
-                cur_sym, _parse_record_optional_float(record, "bogle_enterprise_growth")
-            ),
+            "bogle_enterprise_growth": _fmt_money(cur_sym, bogle_growth),
+            "bogle_buying_desire": bogle_desire_result,
+            "bogle_buying_desire_detail": bogle_desire_detail,
             "cost": _fmt_money(cur_sym, cost),
             "value": _fmt_money(cur_sym, value),
             "pnl": _fmt_money(cur_sym, pnl, signed=True),
