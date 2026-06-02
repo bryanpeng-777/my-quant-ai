@@ -5,7 +5,7 @@
 本轮生意盈亏 = 扣减后当前总市值 − 扣减后生意总投资；
 「投资占比」= 生意总投资 ÷ 扣减后的当前总资产。
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
-逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏。
+逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_vwap 为财报日 VWAP。
 """
 import json
 import os
@@ -93,6 +93,19 @@ def _parse_current_total_assets(data: dict) -> dict:
     except (TypeError, ValueError):
         print(f"[{datetime.now()}] ⚠️  current_total_assets 格式无效，将忽略")
     return {MARKET_US: None, MARKET_HK: None}
+
+
+def _parse_earnings_vwap(record: dict) -> float:
+    """逐笔 optional：earnings_vwap（财报日 VWAP），未配置或无效时为 0。"""
+    raw = record.get("earnings_vwap")
+    if raw is None:
+        return 0.0
+    try:
+        value = float(raw)
+        return value if value >= 0 else 0.0
+    except (TypeError, ValueError):
+        print(f"[{datetime.now()}] ⚠️  {record.get('symbol', '?')} earnings_vwap 无效，按 0 处理")
+        return 0.0
 
 
 def _empty_market_dict():
@@ -373,6 +386,7 @@ def build_plain_report(
             )
             lines.append(f"  股数       {r['qty']}")
             lines.append(f"  买入价     {r['buy']}    现价 {r['current']}")
+            lines.append(f"  财报日VWAP {r['earnings_vwap']}")
             lines.append(f"  成本       {r['cost']}    市值 {r['value']}")
             lines.append(f"  盈亏       {r['pnl']}")
         lines.append("────────────────────────")
@@ -471,6 +485,7 @@ def build_html_report(
                         kv_row("股数", r["qty"]),
                         kv_row("买入价", r["buy"]),
                         kv_row("现价", r["current"]),
+                        kv_row("财报日VWAP", r["earnings_vwap"]),
                         kv_row("成本", r["cost"]),
                         kv_row("市值", r["value"]),
                         kv_row("盈亏", r["pnl"], pnl=True),
@@ -607,6 +622,7 @@ def run_report():
             "qty": f"{quantity:g}",
             "buy": _fmt_money(cur_sym, float(purchase_price)),
             "current": _fmt_money(cur_sym, current_price),
+            "earnings_vwap": _fmt_money(cur_sym, _parse_earnings_vwap(record)),
             "cost": _fmt_money(cur_sym, cost),
             "value": _fmt_money(cur_sym, value),
             "pnl": _fmt_money(cur_sym, pnl, signed=True),
