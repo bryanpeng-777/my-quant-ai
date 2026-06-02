@@ -12,37 +12,43 @@
       "symbol": "GOOGL",
       "purchase_price": 308.17,
       "quantity": 40,
-      "earnings_vwap": 0
+      "earnings_vwap": 0,
+      "bogle_enterprise_growth": 0
     },
     {
       "symbol": "VOO",
       "purchase_price": 618.408,
       "quantity": 10,
-      "earnings_vwap": 0
+      "earnings_vwap": 0,
+      "bogle_enterprise_growth": 0
     },
     {
       "symbol": "NVDA",
       "purchase_price": 174.80,
       "quantity": 3,
-      "earnings_vwap": 0
+      "earnings_vwap": 0,
+      "bogle_enterprise_growth": 0
     },
     {
       "symbol": "BRK-B",
       "purchase_price": 480.138,
       "quantity": 64,
-      "earnings_vwap": 0
+      "earnings_vwap": 0,
+      "bogle_enterprise_growth": 0
     },
     {
       "symbol": "Dell",
       "purchase_price": 413.95,
       "quantity": 1,
-      "earnings_vwap": 414
+      "earnings_vwap": 414,
+      "bogle_enterprise_growth": 0
     },
     {
       "symbol": "0700",
       "purchase_price": 468.36,
       "quantity": 300,
-      "earnings_vwap": 0
+      "earnings_vwap": 0,
+      "bogle_enterprise_growth": 0
     }
   ]
 }
