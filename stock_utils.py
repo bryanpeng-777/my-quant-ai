@@ -253,7 +253,7 @@ def compute_bogle_buying_desire(
 ) -> float | None:
     """
     博格买入欲望 = (15 - 市盈率TTM) / 100 + 股息率 + eps_growth / 100
-    eps_growth 为百分数点位（如 5 表示 5%）。
+    eps_growth 为百分数点位（如 5 表示 5%），可为 GAAP 或 Non-GAAP 口径。
     市盈率 TTM 缺失时返回 None。
     """
     if pe_ttm is None:
@@ -267,10 +267,12 @@ def build_bogle_buying_desire_breakdown(
     pe_ttm: float | None,
     dividend_yield: float | None,
     eps_growth: float,
+    eps_growth_label: str = "EPS增长",
 ) -> tuple[str, str]:
     """
     返回 (结果百分比字符串, 计算过程说明)。
     市盈率 TTM 缺失时结果为「—」。
+    eps_growth_label 用于计算过程展示（如 GAAP、Non-GAAP）。
     """
     if pe_ttm is None:
         return "—", "缺少市盈率TTM，无法计算"
@@ -284,7 +286,7 @@ def build_bogle_buying_desire_breakdown(
     result = f"{total * 100:.2f}%"
     detail = (
         f"(15-PE TTM {pe_ttm:.1f})/100={pe_term * 100:+.2f}% + "
-        f"股息{div * 100:.2f}% + 增长{growth:g}/100={growth_term * 100:.2f}% "
+        f"股息{div * 100:.2f}% + 增长{eps_growth_label}{growth:g}/100={growth_term * 100:.2f}% "
         f"= {result}"
     )
     return result, detail

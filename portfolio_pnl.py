@@ -5,7 +5,7 @@
 本轮生意盈亏 = 扣减后当前总市值 − 扣减后生意总投资；
 「投资占比」= 生意总投资 ÷ 扣减后的当前总资产。
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
-逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_vwap、dividend_yield、eps_growth 手动填写（百分数，未填为 0）；博格买入欲望按 (15-市盈率TTM)/100+股息率+eps_growth/100 计算（市盈率取 trailingPE）。
+逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_vwap、dividend_yield、eps_growth_GAAP、eps_growth_Non_GAAP 手动填写（百分数，未填为 0）；博格买入欲望分别按 GAAP / Non-GAAP 两套 EPS 增长计算：(15-市盈率TTM)/100+股息率+eps_growth/100（市盈率取 trailingPE）。
 """
 import json
 import os
@@ -395,10 +395,13 @@ def build_plain_report(
             lines.append(f"  股数       {r['qty']}")
             lines.append(f"  买入价     {r['buy']}    现价 {r['current']}")
             lines.append(f"  财报日VWAP {r['earnings_vwap']}")
-            lines.append(f"  EPS增长    {r['eps_growth']}")
+            lines.append(f"  EPS增长(GAAP)     {r['eps_growth_GAAP']}")
+            lines.append(f"  EPS增长(Non-GAAP) {r['eps_growth_Non_GAAP']}")
             lines.append(f"  股息率     {r['dividend_yield']}")
-            lines.append(f"  博格买入欲望 {r['bogle_buying_desire']}")
-            lines.append(f"             {r['bogle_buying_desire_detail']}")
+            lines.append(f"  博格买入欲望(GAAP)     {r['bogle_buying_desire_GAAP']}")
+            lines.append(f"                       {r['bogle_buying_desire_detail_GAAP']}")
+            lines.append(f"  博格买入欲望(Non-GAAP) {r['bogle_buying_desire_Non_GAAP']}")
+            lines.append(f"                       {r['bogle_buying_desire_detail_Non_GAAP']}")
             lines.append(f"  成本       {r['cost']}    市值 {r['value']}")
             lines.append(f"  盈亏       {r['pnl']}")
         lines.append("────────────────────────")
@@ -498,10 +501,13 @@ def build_html_report(
                         kv_row("买入价", r["buy"]),
                         kv_row("现价", r["current"]),
                         kv_row("财报日VWAP", r["earnings_vwap"]),
-                        kv_row("EPS增长", r["eps_growth"]),
+                        kv_row("EPS增长(GAAP)", r["eps_growth_GAAP"]),
+                        kv_row("EPS增长(Non-GAAP)", r["eps_growth_Non_GAAP"]),
                         kv_row("股息率", r["dividend_yield"]),
-                        kv_row("博格买入欲望", r["bogle_buying_desire"]),
-                        kv_row("　计算过程", r["bogle_buying_desire_detail"]),
+                        kv_row("博格买入欲望(GAAP)", r["bogle_buying_desire_GAAP"]),
+                        kv_row("　计算过程(GAAP)", r["bogle_buying_desire_detail_GAAP"]),
+                        kv_row("博格买入欲望(Non-GAAP)", r["bogle_buying_desire_Non_GAAP"]),
+                        kv_row("　计算过程(Non-GAAP)", r["bogle_buying_desire_detail_Non_GAAP"]),
                         kv_row("成本", r["cost"]),
                         kv_row("市值", r["value"]),
                         kv_row("盈亏", r["pnl"], pnl=True),
@@ -631,13 +637,22 @@ def run_report():
         aggregates[market]["total_value"] += value
         aggregates[market]["total_pnl"] += pnl  # 仅备用；汇总本轮生意盈亏以总市值−生意总投资为准
 
-        eps_growth = _parse_record_optional_float(record, "eps_growth")
+        eps_growth_gaap = _parse_record_optional_float(record, "eps_growth_GAAP")
+        eps_growth_non_gaap = _parse_record_optional_float(record, "eps_growth_Non_GAAP")
         dividend_pct = _parse_record_optional_float(record, "dividend_yield")
         fundamentals = get_bogle_fundamentals(symbol, market)
-        bogle_desire_result, bogle_desire_detail = build_bogle_buying_desire_breakdown(
+        dividend_decimal = dividend_pct / 100.0
+        bogle_gaap_result, bogle_gaap_detail = build_bogle_buying_desire_breakdown(
             fundamentals["pe_ttm"],
-            dividend_pct / 100.0,
-            eps_growth,
+            dividend_decimal,
+            eps_growth_gaap,
+            eps_growth_label="GAAP",
+        )
+        bogle_non_gaap_result, bogle_non_gaap_detail = build_bogle_buying_desire_breakdown(
+            fundamentals["pe_ttm"],
+            dividend_decimal,
+            eps_growth_non_gaap,
+            eps_growth_label="Non-GAAP",
         )
 
         rows_ok.append({
@@ -650,10 +665,13 @@ def run_report():
             "earnings_vwap": _fmt_money(
                 cur_sym, _parse_record_optional_float(record, "earnings_vwap")
             ),
-            "eps_growth": _fmt_pct(eps_growth),
+            "eps_growth_GAAP": _fmt_pct(eps_growth_gaap),
+            "eps_growth_Non_GAAP": _fmt_pct(eps_growth_non_gaap),
             "dividend_yield": _fmt_pct(dividend_pct),
-            "bogle_buying_desire": bogle_desire_result,
-            "bogle_buying_desire_detail": bogle_desire_detail,
+            "bogle_buying_desire_GAAP": bogle_gaap_result,
+            "bogle_buying_desire_detail_GAAP": bogle_gaap_detail,
+            "bogle_buying_desire_Non_GAAP": bogle_non_gaap_result,
+            "bogle_buying_desire_detail_Non_GAAP": bogle_non_gaap_detail,
             "cost": _fmt_money(cur_sym, cost),
             "value": _fmt_money(cur_sym, value),
             "pnl": _fmt_money(cur_sym, pnl, signed=True),

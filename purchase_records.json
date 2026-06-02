@@ -14,7 +14,8 @@
       "quantity": 40,
       "earnings_vwap": 379,
       "dividend_yield": 0.22,
-      "eps_growth": 21.28
+      "eps_growth_GAAP": 21.28,
+      "eps_growth_Non_GAAP": 13.44
     },
     {
       "symbol": "VOO",
@@ -22,7 +23,8 @@
       "quantity": 10,
       "earnings_vwap": 0,
       "dividend_yield": 0,
-      "eps_growth": 0
+      "eps_growth_GAAP": 0,
+      "eps_growth_Non_GAAP": 0
     },
     {
       "symbol": "NVDA",
@@ -30,7 +32,8 @@
       "quantity": 3,
       "earnings_vwap": 0,
       "dividend_yield": 0,
-      "eps_growth": 0
+      "eps_growth_GAAP": 0,
+      "eps_growth_Non_GAAP": 0
     },
     {
       "symbol": "BRK-B",
@@ -38,7 +41,8 @@
       "quantity": 64,
       "earnings_vwap": 0,
       "dividend_yield": 0,
-      "eps_growth": 0
+      "eps_growth_GAAP": 0,
+      "eps_growth_Non_GAAP": 0
     },
     {
       "symbol": "Dell",
@@ -46,7 +50,8 @@
       "quantity": 1,
       "earnings_vwap": 414,
       "dividend_yield": 0,
-      "eps_growth": 0
+      "eps_growth_GAAP": 0,
+      "eps_growth_Non_GAAP": 0
     },
     {
       "symbol": "0700",
@@ -54,7 +59,8 @@
       "quantity": 300,
       "earnings_vwap": 0,
       "dividend_yield": 0,
-      "eps_growth": 11.6
+      "eps_growth_GAAP": 11.6,
+      "eps_growth_Non_GAAP": 0
     }
   ]
 }
