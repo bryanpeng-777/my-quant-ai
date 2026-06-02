@@ -5,7 +5,7 @@
 本轮生意盈亏 = 扣减后当前总市值 − 扣减后生意总投资；
 「投资占比」= 生意总投资 ÷ 扣减后的当前总资产。
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
-逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_vwap、dividend_yield、eps_growth 手动填写（百分数，未填为 0）；博格买入欲望按 (15-市盈率)/100+股息率+eps_growth/100 计算。
+逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_vwap、dividend_yield、eps_growth 手动填写（百分数，未填为 0）；博格买入欲望按 (15-市盈率TTM)/100+股息率+eps_growth/100 计算（市盈率取 trailingPE）。
 """
 import json
 import os
@@ -635,7 +635,7 @@ def run_report():
         dividend_pct = _parse_record_optional_float(record, "dividend_yield")
         fundamentals = get_bogle_fundamentals(symbol, market)
         bogle_desire_result, bogle_desire_detail = build_bogle_buying_desire_breakdown(
-            fundamentals["pe"],
+            fundamentals["pe_ttm"],
             dividend_pct / 100.0,
             eps_growth,
         )

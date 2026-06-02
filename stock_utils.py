@@ -217,70 +217,73 @@ def get_current_stock_price(symbol, market):
 # ==========================================
 # 博格买入欲望
 # ==========================================
+# 博格公式中的「市盈率」统一取 TTM（Trailing Twelve Months），对应 yfinance 的 trailingPE。
+# 不使用 forwardPE 或其他前瞻/静态市盈率。
+BOGLE_PE_FIELD = "trailingPE"
+
+
 def get_bogle_fundamentals(symbol, market):
     """
-    获取博格买入欲望所需市盈率（股息率改由 purchase_records 手动配置）。
+    获取博格买入欲望所需市盈率 TTM（股息率改由 purchase_records 手动配置）。
 
     Returns:
-        {"pe": float|None, "dividend_yield": None}
+        {"pe_ttm": float|None, "dividend_yield": None}
     """
-    empty = {"pe": None, "dividend_yield": None}
+    empty = {"pe_ttm": None, "dividend_yield": None}
     try:
         normalized_symbol = normalize_symbol(symbol, market)
         info = yf.Ticker(normalized_symbol).info
-        pe_raw = info.get("trailingPE")
-        if pe_raw is None:
-            pe_raw = info.get("forwardPE")
-        pe = None
+        pe_raw = info.get(BOGLE_PE_FIELD)
+        pe_ttm = None
         if pe_raw is not None:
             pe_val = float(pe_raw)
             if pe_val > 0:
-                pe = pe_val
-        return {"pe": pe, "dividend_yield": None}
+                pe_ttm = pe_val
+        return {"pe_ttm": pe_ttm, "dividend_yield": None}
     except Exception as e:
         market_name = get_market_name(market)
-        print(f"获取{market_name} {symbol} 市盈率时出错: {str(e)}")
+        print(f"获取{market_name} {symbol} 市盈率TTM时出错: {str(e)}")
         return empty
 
 
 def compute_bogle_buying_desire(
-    pe: float | None,
+    pe_ttm: float | None,
     dividend_yield: float | None,
     eps_growth: float,
 ) -> float | None:
     """
-    博格买入欲望 = (15 - 市盈率) / 100 + 股息率 + eps_growth / 100
+    博格买入欲望 = (15 - 市盈率TTM) / 100 + 股息率 + eps_growth / 100
     eps_growth 为百分数点位（如 5 表示 5%）。
-    市盈率缺失时返回 None。
+    市盈率 TTM 缺失时返回 None。
     """
-    if pe is None:
+    if pe_ttm is None:
         return None
     div = dividend_yield if dividend_yield is not None else 0.0
     growth = eps_growth if eps_growth is not None else 0.0
-    return (15.0 - pe) / 100.0 + div + growth / 100.0
+    return (15.0 - pe_ttm) / 100.0 + div + growth / 100.0
 
 
 def build_bogle_buying_desire_breakdown(
-    pe: float | None,
+    pe_ttm: float | None,
     dividend_yield: float | None,
     eps_growth: float,
 ) -> tuple[str, str]:
     """
     返回 (结果百分比字符串, 计算过程说明)。
-    市盈率缺失时结果为「—」。
+    市盈率 TTM 缺失时结果为「—」。
     """
-    if pe is None:
-        return "—", "缺少市盈率，无法计算"
+    if pe_ttm is None:
+        return "—", "缺少市盈率TTM，无法计算"
 
     div = dividend_yield if dividend_yield is not None else 0.0
     growth = eps_growth if eps_growth is not None else 0.0
-    pe_term = (15.0 - pe) / 100.0
+    pe_term = (15.0 - pe_ttm) / 100.0
     growth_term = growth / 100.0
     total = pe_term + div + growth_term
 
     result = f"{total * 100:.2f}%"
     detail = (
-        f"(15-{pe:.1f})/100={pe_term * 100:+.2f}% + "
+        f"(15-PE TTM {pe_ttm:.1f})/100={pe_term * 100:+.2f}% + "
         f"股息{div * 100:.2f}% + 增长{growth:g}/100={growth_term * 100:.2f}% "
         f"= {result}"
     )
