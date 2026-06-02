@@ -1,7 +1,8 @@
 """
 持仓总成本与当前总盈亏报告
 从 purchase_records.json 读取：`records` 逐笔；可选 `total_investment`、`current_total_assets`（按市场）。
-汇总行：本轮生意盈亏 = 当前总市值 − 生意总投资；
+汇总行：生意总投资、当前总市值、本轮生意盈亏均扣减母亲总资产（美元+港币按汇率折算）；
+本轮生意盈亏 = 扣减后当前总市值 − 扣减后生意总投资；
 「投资占比」= 生意总投资 ÷ 扣减后的当前总资产。
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
 逐笔明细盈亏仍按买入价×数量与现价计算。
@@ -152,10 +153,14 @@ def _fmt_money(cur_sym: str, amount: float, signed: bool = False) -> str:
     return f"{cur_sym}{amount:,.2f}"
 
 
-def _summary_rows(aggregates: dict, investment_override: dict) -> list[list[str]]:
+def _summary_rows(
+    aggregates: dict,
+    investment_override: dict,
+    mother_totals: dict,
+    usd_hkd_rate: float,
+) -> list[list[str]]:
     """
-    每个元素: [市场, 生意总投资, 当前总市值, 本轮生意盈亏]。
-    本轮生意盈亏 = 当前总市值 − 生意总投资；生意总投资优先取配置 total_investment，否则为逐笔买入成本合计。
+    每个元素: [市场, 生意总投资, 当前总市值, 本轮生意盈亏]（均已扣减母亲总资产）。
     """
     rows = []
     for market in (MARKET_US, MARKET_HK):
@@ -165,35 +170,40 @@ def _summary_rows(aggregates: dict, investment_override: dict) -> list[list[str]
         summed_cost = agg["total_cost"]
         value = agg["total_value"]
         cfg_inv = investment_override.get(market)
-        if cfg_inv is not None:
-            investment = cfg_inv
-            pnl = value - investment
-        else:
-            investment = summed_cost
-            pnl = value - summed_cost
-        if summed_cost <= 0 and value <= 0:
+        investment = cfg_inv if cfg_inv is not None else summed_cost
+        mother_deduct = mother_assets_deduction_for_market(
+            mother_totals, market, usd_hkd_rate
+        )
+        investment_net = investment - mother_deduct
+        value_net = value - mother_deduct
+        pnl_net = value_net - investment_net
+        if summed_cost <= 0 and value <= 0 and cfg_inv is None:
             rows.append([name, "—", "—", "（无有效汇总）"])
         else:
             rows.append(
                 [
                     name,
-                    _fmt_money(cur_sym, investment),
-                    _fmt_money(cur_sym, value),
-                    _fmt_money(cur_sym, pnl, signed=True),
+                    _fmt_money(cur_sym, investment_net),
+                    _fmt_money(cur_sym, value_net),
+                    _fmt_money(cur_sym, pnl_net, signed=True),
                 ]
             )
     return rows
 
 
-def _summary_footnote(investment_override: dict) -> str:
+def _summary_footnote(investment_override: dict, usd_hkd_rate: float) -> str:
+    mother_note = (
+        f"汇总三项均已扣减母亲总资产（美元+港币合计，按 1 USD = {usd_hkd_rate:.4f} HKD 折算）。"
+        "逐笔明细盈亏仍按买入价与现价计算，不受此影响。"
+    )
     if investment_override.get(MARKET_US) is None and investment_override.get(MARKET_HK) is None:
         return (
             "说明：汇总「生意总投资」未在配置中填写时，等于各笔买入成本合计；"
-            "本轮生意盈亏=总市值−该值。逐笔明细盈亏仍按买入价与现价计算，不受此影响。"
+            f"本轮生意盈亏=扣减后总市值−扣减后该值。{mother_note}"
         )
     return (
-        "说明：汇总「本轮生意盈亏」= 当前总市值 − 配置项 total_investment（按市场）；"
-        "逐笔明细盈亏仍按买入价与现价计算，不受此影响。"
+        "说明：汇总「生意总投资」优先取配置项 total_investment（按市场）；"
+        f"本轮生意盈亏=扣减后当前总市值−扣减后生意总投资。{mother_note}"
     )
 
 
@@ -295,14 +305,16 @@ def build_plain_report(
         "",
         "════════ 按市场汇总 ════════",
     ]
-    for row in _summary_rows(aggregates, investment_override):
+    for row in _summary_rows(
+        aggregates, investment_override, mother_totals, usd_hkd_rate
+    ):
         m, inv, v, p = row
         lines.append(f"{m}")
         lines.append(f"  生意总投资       {inv}")
         lines.append(f"  当前总市值   {v}")
         lines.append(f"  本轮生意盈亏   {p}")
         lines.append("")
-    lines.append(_summary_footnote(investment_override))
+    lines.append(_summary_footnote(investment_override, usd_hkd_rate))
     lines.append("")
 
     ratio_rows = _investment_ratio_rows(
@@ -368,7 +380,9 @@ def build_html_report(
 ) -> str:
     """手机邮箱友好：卡片 + 键值对布局。"""
     summary_cards = []
-    for m, inv, value, pnl in _summary_rows(aggregates, investment_override):
+    for m, inv, value, pnl in _summary_rows(
+        aggregates, investment_override, mother_totals, usd_hkd_rate
+    ):
         if inv == "—" and value == "—":
             continue
         summary_cards.append(
@@ -450,7 +464,7 @@ def build_html_report(
     summary_html = "".join(summary_cards) if summary_cards else HTML_EMPTY
     body = (
         section_heading("按市场汇总")
-        + f'<p style="font-size:12px;color:#666;margin:0 0 12px;line-height:1.45;">{h(_summary_footnote(investment_override))}</p>'
+        + f'<p style="font-size:12px;color:#666;margin:0 0 12px;line-height:1.45;">{h(_summary_footnote(investment_override, usd_hkd_rate))}</p>'
         + summary_html
         + ratio_block
         + pos_block
