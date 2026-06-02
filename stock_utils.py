@@ -217,29 +217,126 @@ def get_current_stock_price(symbol, market):
 # ==========================================
 # 博格买入欲望
 # ==========================================
-# 博格公式中的「市盈率」统一取 TTM（Trailing Twelve Months），对应 yfinance 的 trailingPE。
-# 不使用 forwardPE 或其他前瞻/静态市盈率。
-BOGLE_PE_FIELD = "trailingPE"
+# 市盈率 TTM 定义：现价 ÷ EPS(TTM)。优先用 trailingEps 自行计算，避免 Yahoo trailingPE 偶发为静态 PE。
+# 禁止用 forwardPE（前瞻）或无法校验的单一字段。
+BOGLE_EPS_TTM_FIELDS = ("trailingEps", "epsTrailingTwelveMonths")
+BOGLE_PE_REPORTED_FIELD = "trailingPE"  # 仅作交叉校验，不作首选
+BOGLE_PE_MISMATCH_RATIO = 0.05  # trailingPE 与计算值相对偏差超过 5% 时以计算值为准
 
 
-def get_bogle_fundamentals(symbol, market):
+def _positive_float(raw) -> float | None:
+    if raw is None:
+        return None
+    try:
+        value = float(raw)
+        return value if value > 0 else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _extract_eps_ttm(info: dict, ticker=None) -> float | None:
+    """提取 trailing EPS (TTM)；亏损（≤0）时返回 None，不适用 PE TTM。"""
+    for field in BOGLE_EPS_TTM_FIELDS:
+        raw = info.get(field)
+        if raw is None:
+            continue
+        try:
+            eps = float(raw)
+            if eps > 0:
+                return eps
+            if eps <= 0:
+                return None
+        except (TypeError, ValueError):
+            continue
+    if ticker is not None:
+        try:
+            fast = ticker.fast_info
+            for key in ("trailing_eps", "trailingEps"):
+                raw = getattr(fast, key, None)
+                if raw is None and hasattr(fast, "get"):
+                    raw = fast.get(key)
+                if raw is None:
+                    continue
+                eps = float(raw)
+                if eps > 0:
+                    return eps
+                if eps <= 0:
+                    return None
+        except Exception:
+            pass
+    return None
+
+
+def resolve_pe_ttm(
+    info: dict,
+    *,
+    current_price: float | None = None,
+    symbol: str = "",
+    market: str = "",
+    ticker=None,
+) -> tuple[float | None, str]:
+    """
+    解析市盈率 TTM：现价 ÷ EPS(TTM)。
+    有 EPS TTM 时一律自行计算；trailingPE 仅交叉校验。
+    Returns:
+        (pe_ttm, source) — source 供报告展示取值依据
+    """
+    price = _positive_float(current_price)
+    if price is None:
+        price = _positive_float(
+            info.get("regularMarketPrice") or info.get("currentPrice")
+        )
+
+    eps_ttm = _extract_eps_ttm(info, ticker=ticker)
+    computed = price / eps_ttm if price is not None and eps_ttm is not None else None
+
+    reported = _positive_float(info.get(BOGLE_PE_REPORTED_FIELD))
+
+    if computed is not None:
+        if reported is not None:
+            rel_diff = abs(computed - reported) / reported
+            if rel_diff > BOGLE_PE_MISMATCH_RATIO:
+                market_name = get_market_name(market) if market else ""
+                print(
+                    f"[{datetime.now()}] ⚠️  {market_name} {symbol} "
+                    f"{BOGLE_PE_REPORTED_FIELD}={reported:.2f} 与 "
+                    f"现价/EPS TTM={computed:.2f} 偏差 {rel_diff * 100:.1f}%，采用计算值"
+                )
+        source = f"现价÷EPS TTM({price:.2f}÷{eps_ttm:.2f})"
+        return round(computed, 2), source
+
+    if reported is not None:
+        market_name = get_market_name(market) if market else ""
+        print(
+            f"[{datetime.now()}] ⚠️  {market_name} {symbol} "
+            f"缺少 EPS TTM，暂用 {BOGLE_PE_REPORTED_FIELD}={reported:.2f}（无法校验是否为 TTM）"
+        )
+        return round(reported, 2), f"{BOGLE_PE_REPORTED_FIELD}(未校验)"
+
+    return None, ""
+
+
+def get_bogle_fundamentals(symbol, market, current_price: float | None = None):
     """
     获取博格买入欲望所需市盈率 TTM（股息率改由 purchase_records 手动配置）。
+    传入 current_price 时与报告现价一致，PE TTM = current_price / EPS(TTM)。
 
     Returns:
-        {"pe_ttm": float|None, "dividend_yield": None}
+        {"pe_ttm": float|None, "pe_ttm_source": str, "dividend_yield": None}
     """
-    empty = {"pe_ttm": None, "dividend_yield": None}
+    empty = {"pe_ttm": None, "pe_ttm_source": "", "dividend_yield": None}
     try:
         normalized_symbol = normalize_symbol(symbol, market)
-        info = yf.Ticker(normalized_symbol).info
-        pe_raw = info.get(BOGLE_PE_FIELD)
-        pe_ttm = None
-        if pe_raw is not None:
-            pe_val = float(pe_raw)
-            if pe_val > 0:
-                pe_ttm = pe_val
-        return {"pe_ttm": pe_ttm, "dividend_yield": None}
+        ticker = yf.Ticker(normalized_symbol)
+        info = ticker.info
+        pe_ttm, source = resolve_pe_ttm(
+            info,
+            current_price=current_price,
+            symbol=symbol,
+            market=market,
+            ticker=ticker,
+        )
+        return {"pe_ttm": pe_ttm, "pe_ttm_source": source, "dividend_yield": None}
     except Exception as e:
         market_name = get_market_name(market)
         print(f"获取{market_name} {symbol} 市盈率TTM时出错: {str(e)}")
@@ -268,11 +365,13 @@ def build_bogle_buying_desire_breakdown(
     dividend_yield: float | None,
     eps_growth: float,
     eps_growth_label: str = "EPS增长",
+    pe_ttm_source: str = "",
 ) -> tuple[str, str]:
     """
     返回 (结果百分比字符串, 计算过程说明)。
     市盈率 TTM 缺失时结果为「—」。
     eps_growth_label 用于计算过程展示（如 GAAP、Non-GAAP）。
+    pe_ttm_source 展示 PE TTM 取值依据（如 现价÷EPS TTM）。
     """
     if pe_ttm is None:
         return "—", "缺少市盈率TTM，无法计算"
@@ -283,9 +382,13 @@ def build_bogle_buying_desire_breakdown(
     growth_term = growth / 100.0
     total = pe_term + div + growth_term
 
+    pe_desc = f"PE TTM {pe_ttm:.1f}"
+    if pe_ttm_source:
+        pe_desc = f"PE TTM {pe_ttm:.1f}[{pe_ttm_source}]"
+
     result = f"{total * 100:.2f}%"
     detail = (
-        f"(15-PE TTM {pe_ttm:.1f})/100={pe_term * 100:+.2f}% + "
+        f"(15-{pe_desc})/100={pe_term * 100:+.2f}% + "
         f"股息{div * 100:.2f}% + 增长{eps_growth_label}{growth:g}/100={growth_term * 100:.2f}% "
         f"= {result}"
     )
