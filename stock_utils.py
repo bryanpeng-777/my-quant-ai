@@ -214,27 +214,15 @@ def get_current_stock_price(symbol, market):
         return None
 
 
-def _normalize_dividend_yield(raw) -> float | None:
-    """将 yfinance dividendYield 规范为小数（如 0.03 表示 3%）。"""
-    if raw is None:
-        return None
-    try:
-        value = float(raw)
-    except (TypeError, ValueError):
-        return None
-    if value < 0:
-        return None
-    if value > 1:
-        return value / 100.0
-    return value
-
-
+# ==========================================
+# 博格买入欲望
+# ==========================================
 def get_bogle_fundamentals(symbol, market):
     """
-    获取博格买入欲望所需基本面：市盈率、股息率（小数）。
+    获取博格买入欲望所需市盈率（股息率改由 purchase_records 手动配置）。
 
     Returns:
-        {"pe": float|None, "dividend_yield": float|None}
+        {"pe": float|None, "dividend_yield": None}
     """
     empty = {"pe": None, "dividend_yield": None}
     try:
@@ -248,35 +236,34 @@ def get_bogle_fundamentals(symbol, market):
             pe_val = float(pe_raw)
             if pe_val > 0:
                 pe = pe_val
-        div = _normalize_dividend_yield(info.get("dividendYield"))
-        return {"pe": pe, "dividend_yield": div}
+        return {"pe": pe, "dividend_yield": None}
     except Exception as e:
         market_name = get_market_name(market)
-        print(f"获取{market_name} {symbol} 市盈率/股息率时出错: {str(e)}")
+        print(f"获取{market_name} {symbol} 市盈率时出错: {str(e)}")
         return empty
 
 
 def compute_bogle_buying_desire(
     pe: float | None,
     dividend_yield: float | None,
-    bogle_enterprise_growth: float,
+    eps_growth: float,
 ) -> float | None:
     """
-    博格买入欲望 = (15 - 市盈率) / 100 + 股息率 + bogle_enterprise_growth / 100
-    bogle_enterprise_growth 为百分数点位（如 5 表示 5%）。
+    博格买入欲望 = (15 - 市盈率) / 100 + 股息率 + eps_growth / 100
+    eps_growth 为百分数点位（如 5 表示 5%）。
     市盈率缺失时返回 None。
     """
     if pe is None:
         return None
     div = dividend_yield if dividend_yield is not None else 0.0
-    growth = bogle_enterprise_growth if bogle_enterprise_growth is not None else 0.0
+    growth = eps_growth if eps_growth is not None else 0.0
     return (15.0 - pe) / 100.0 + div + growth / 100.0
 
 
 def build_bogle_buying_desire_breakdown(
     pe: float | None,
     dividend_yield: float | None,
-    bogle_enterprise_growth: float,
+    eps_growth: float,
 ) -> tuple[str, str]:
     """
     返回 (结果百分比字符串, 计算过程说明)。
@@ -286,7 +273,7 @@ def build_bogle_buying_desire_breakdown(
         return "—", "缺少市盈率，无法计算"
 
     div = dividend_yield if dividend_yield is not None else 0.0
-    growth = bogle_enterprise_growth if bogle_enterprise_growth is not None else 0.0
+    growth = eps_growth if eps_growth is not None else 0.0
     pe_term = (15.0 - pe) / 100.0
     growth_term = growth / 100.0
     total = pe_term + div + growth_term
