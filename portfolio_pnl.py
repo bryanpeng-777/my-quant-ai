@@ -1,7 +1,7 @@
 """
 持仓总成本与当前总盈亏报告
 从 purchase_records.json 读取：`records` 逐笔；可选 `total_investment`、`current_total_assets`（按市场）。
-汇总行：生意总投资、当前总市值扣减母亲持仓（成本/市值，跨币种折算），不含母亲现金；
+汇总行：生意总投资、当前总市值扣减同市场母亲持仓（成本/市值），不含母亲现金；
 本轮生意盈亏 = 扣减后当前总市值 − 扣减后生意总投资；
 「投资占比」= 扣减母亲持仓成本后的生意总投资 ÷ 扣减后的当前总资产。
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
@@ -186,7 +186,7 @@ def _summary_rows(
 ) -> list[list[str]]:
     """
     每个元素: [市场, 生意总投资, 当前总市值, 本轮生意盈亏]。
-    生意总投资扣减母亲持仓成本；当前总市值扣减母亲持仓市值。
+    生意总投资扣减同市场母亲持仓成本；当前总市值扣减同市场母亲持仓市值。
     """
     rows = []
     for market in (MARKET_US, MARKET_HK):
@@ -197,12 +197,8 @@ def _summary_rows(
         value = agg["total_value"]
         cfg_inv = investment_override.get(market)
         investment = cfg_inv if cfg_inv is not None else summed_cost
-        mother_cost_deduct = mother_stock_deduction_for_market(
-            mother_stock_cost, market, usd_hkd_rate
-        )
-        mother_value_deduct = mother_stock_deduction_for_market(
-            mother_stock_value, market, usd_hkd_rate
-        )
+        mother_cost_deduct = mother_stock_deduction_for_market(mother_stock_cost, market)
+        mother_value_deduct = mother_stock_deduction_for_market(mother_stock_value, market)
         investment_net = investment - mother_cost_deduct
         value_net = value - mother_value_deduct
         pnl_net = value_net - investment_net
@@ -222,8 +218,8 @@ def _summary_rows(
 
 def _summary_footnote(investment_override: dict, usd_hkd_rate: float) -> str:
     mother_note = (
-        f"汇总「生意总投资」扣减母亲持仓成本（purchase_price×股数）；"
-        f"「当前总市值」扣减母亲持仓市值（现价×股数）；均按 1 USD = {usd_hkd_rate:.4f} HKD 跨币种折算。"
+        "汇总「生意总投资」扣减同市场母亲持仓成本（purchase_price×股数）；"
+        "「当前总市值」扣减同市场母亲持仓市值（现价×股数）；不跨币种折算。"
         "不含母亲现金。逐笔明细盈亏仍按买入价与现价计算，不受此影响。"
     )
     if investment_override.get(MARKET_US) is None and investment_override.get(MARKET_HK) is None:
@@ -248,7 +244,7 @@ def _ratio_footnote(usd_hkd_rate: float) -> str:
     return (
         "说明：「投资占比」= 扣减母亲持仓成本后的生意总投资 ÷ 扣减后的当前总资产。"
         f"分母扣减母亲总资产（美元+港币合计，按汇率 1 USD = {usd_hkd_rate:.4f} HKD 折算）；"
-        f"分子扣减母亲持仓成本（purchase_price×股数，同币种折算）。"
+        f"分子扣减同市场母亲持仓成本（purchase_price×股数，不跨币种折算）。"
         "母亲资产来自 mother_assets.json。"
     )
 
@@ -285,9 +281,7 @@ def _investment_ratio_rows(
         name = get_market_name(market)
         cur_sym = get_currency_symbol(market)
         inv_gross = _effective_investment(aggregates, investment_override, market)
-        mother_stock_deduct = mother_stock_deduction_for_market(
-            mother_stock_cost, market, usd_hkd_rate
-        )
+        mother_stock_deduct = mother_stock_deduction_for_market(mother_stock_cost, market)
         inv_net = inv_gross - mother_stock_deduct
         if inv_net <= 0:
             continue
@@ -337,9 +331,7 @@ def _ratio_net_nonpositive_messages(
             )
             continue
         inv_gross = _effective_investment(aggregates, investment_override, market)
-        mother_stock_deduct = mother_stock_deduction_for_market(
-            mother_stock_cost, market, usd_hkd_rate
-        )
+        mother_stock_deduct = mother_stock_deduction_for_market(mother_stock_cost, market)
         inv_net = inv_gross - mother_stock_deduct
         if inv_net <= 0:
             msgs.append(
@@ -645,12 +637,8 @@ def run_report():
     mother_deduct_hk = mother_assets_deduction_for_market(
         mother_totals, MARKET_HK, usd_hkd_rate
     )
-    mother_stock_cost_us = mother_stock_deduction_for_market(
-        mother_stock_cost, MARKET_US, usd_hkd_rate
-    )
-    mother_stock_cost_hk = mother_stock_deduction_for_market(
-        mother_stock_cost, MARKET_HK, usd_hkd_rate
-    )
+    mother_stock_cost_us = mother_stock_deduction_for_market(mother_stock_cost, MARKET_US)
+    mother_stock_cost_hk = mother_stock_deduction_for_market(mother_stock_cost, MARKET_HK)
     print(
         f"[{ts}] 母亲资产(分市场原始): "
         f"US=${mother_totals[MARKET_US]:,.2f} HK=HK${mother_totals[MARKET_HK]:,.2f}"

@@ -94,10 +94,6 @@ def mother_assets_deduction_for_market(
     return _cross_currency_total(mother_us, mother_hk, market, usd_hkd_rate)
 
 
-def mother_stock_deduction_for_market(
-    stock_by_market: dict, market: str, usd_hkd_rate: float
-) -> float:
-    """母亲持仓（市值或成本）分市场合计，折算为指定市场币种。"""
-    amount_us = float(stock_by_market.get(MARKET_US, 0) or 0)
-    amount_hk = float(stock_by_market.get(MARKET_HK, 0) or 0)
-    return _cross_currency_total(amount_us, amount_hk, market, usd_hkd_rate)
+def mother_stock_deduction_for_market(stock_by_market: dict, market: str) -> float:
+    """母亲持仓（市值或成本）仅扣减同市场持仓，不跨币种折算。"""
+    return round(float(stock_by_market.get(market, 0) or 0), 2)
