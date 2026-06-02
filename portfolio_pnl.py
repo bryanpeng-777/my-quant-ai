@@ -1,7 +1,7 @@
 """
 持仓总成本与当前总盈亏报告
 从 purchase_records.json 读取：`records` 逐笔；可选 `total_investment`、`current_total_assets`（按市场）。
-汇总行：生意总投资、当前总市值、本轮生意盈亏均扣减母亲总资产（美元+港币按汇率折算）；
+汇总行：生意总投资、当前总市值扣减母亲持仓（成本/市值，跨币种折算），不含母亲现金；
 本轮生意盈亏 = 扣减后当前总市值 − 扣减后生意总投资；
 「投资占比」= 生意总投资 ÷ 扣减后的当前总资产。
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
@@ -23,7 +23,9 @@ from email_report_layout import (
 )
 from mother_assets_valuation import (
     compute_mother_assets_totals,
+    compute_mother_stock_totals,
     mother_assets_deduction_for_market,
+    mother_stock_deduction_for_market,
 )
 from stock_utils import (
     MARKET_US,
@@ -156,11 +158,13 @@ def _fmt_money(cur_sym: str, amount: float, signed: bool = False) -> str:
 def _summary_rows(
     aggregates: dict,
     investment_override: dict,
-    mother_totals: dict,
+    mother_stock_value: dict,
+    mother_stock_cost: dict,
     usd_hkd_rate: float,
 ) -> list[list[str]]:
     """
-    每个元素: [市场, 生意总投资, 当前总市值, 本轮生意盈亏]（均已扣减母亲总资产）。
+    每个元素: [市场, 生意总投资, 当前总市值, 本轮生意盈亏]。
+    生意总投资扣减母亲持仓成本；当前总市值扣减母亲持仓市值。
     """
     rows = []
     for market in (MARKET_US, MARKET_HK):
@@ -171,11 +175,14 @@ def _summary_rows(
         value = agg["total_value"]
         cfg_inv = investment_override.get(market)
         investment = cfg_inv if cfg_inv is not None else summed_cost
-        mother_deduct = mother_assets_deduction_for_market(
-            mother_totals, market, usd_hkd_rate
+        mother_cost_deduct = mother_stock_deduction_for_market(
+            mother_stock_cost, market, usd_hkd_rate
         )
-        investment_net = investment - mother_deduct
-        value_net = value - mother_deduct
+        mother_value_deduct = mother_stock_deduction_for_market(
+            mother_stock_value, market, usd_hkd_rate
+        )
+        investment_net = investment - mother_cost_deduct
+        value_net = value - mother_value_deduct
         pnl_net = value_net - investment_net
         if summed_cost <= 0 and value <= 0 and cfg_inv is None:
             rows.append([name, "—", "—", "（无有效汇总）"])
@@ -193,8 +200,9 @@ def _summary_rows(
 
 def _summary_footnote(investment_override: dict, usd_hkd_rate: float) -> str:
     mother_note = (
-        f"汇总三项均已扣减母亲总资产（美元+港币合计，按 1 USD = {usd_hkd_rate:.4f} HKD 折算）。"
-        "逐笔明细盈亏仍按买入价与现价计算，不受此影响。"
+        f"汇总「生意总投资」扣减母亲持仓成本（purchase_price×股数）；"
+        f"「当前总市值」扣减母亲持仓市值（现价×股数）；均按 1 USD = {usd_hkd_rate:.4f} HKD 跨币种折算。"
+        "不含母亲现金。逐笔明细盈亏仍按买入价与现价计算，不受此影响。"
     )
     if investment_override.get(MARKET_US) is None and investment_override.get(MARKET_HK) is None:
         return (
@@ -296,6 +304,8 @@ def build_plain_report(
     rows_ok: list,
     notes: str,
     mother_totals: dict,
+    mother_stock_value: dict,
+    mother_stock_cost: dict,
     usd_hkd_rate: float,
 ) -> str:
     """窄屏友好的纯文本：汇总块 + 每只股票单独一块。"""
@@ -306,7 +316,11 @@ def build_plain_report(
         "════════ 按市场汇总 ════════",
     ]
     for row in _summary_rows(
-        aggregates, investment_override, mother_totals, usd_hkd_rate
+        aggregates,
+        investment_override,
+        mother_stock_value,
+        mother_stock_cost,
+        usd_hkd_rate,
     ):
         m, inv, v, p = row
         lines.append(f"{m}")
@@ -376,12 +390,18 @@ def build_html_report(
     rows_ok: list,
     notes: str,
     mother_totals: dict,
+    mother_stock_value: dict,
+    mother_stock_cost: dict,
     usd_hkd_rate: float,
 ) -> str:
     """手机邮箱友好：卡片 + 键值对布局。"""
     summary_cards = []
     for m, inv, value, pnl in _summary_rows(
-        aggregates, investment_override, mother_totals, usd_hkd_rate
+        aggregates,
+        investment_override,
+        mother_stock_value,
+        mother_stock_cost,
+        usd_hkd_rate,
     ):
         if inv == "—" and value == "—":
             continue
@@ -492,6 +512,7 @@ def run_report():
     as_of = ts.date()
     records, investment_override, assets_gross = load_portfolio_source()
     mother_totals = compute_mother_assets_totals(as_of)
+    mother_stock_value, mother_stock_cost = compute_mother_stock_totals(as_of)
     usd_hkd_rate = get_usd_hkd_rate()
     mother_deduct_us = mother_assets_deduction_for_market(
         mother_totals, MARKET_US, usd_hkd_rate
@@ -499,13 +520,31 @@ def run_report():
     mother_deduct_hk = mother_assets_deduction_for_market(
         mother_totals, MARKET_HK, usd_hkd_rate
     )
+    mother_stock_cost_us = mother_stock_deduction_for_market(
+        mother_stock_cost, MARKET_US, usd_hkd_rate
+    )
+    mother_stock_cost_hk = mother_stock_deduction_for_market(
+        mother_stock_cost, MARKET_HK, usd_hkd_rate
+    )
     print(
         f"[{ts}] 母亲资产(分市场原始): "
         f"US=${mother_totals[MARKET_US]:,.2f} HK=HK${mother_totals[MARKET_HK]:,.2f}"
     )
     print(
+        f"[{ts}] 母亲持仓成本(分市场): "
+        f"US=${mother_stock_cost[MARKET_US]:,.2f} HK=HK${mother_stock_cost[MARKET_HK]:,.2f}"
+    )
+    print(
+        f"[{ts}] 母亲持仓市值(分市场): "
+        f"US=${mother_stock_value[MARKET_US]:,.2f} HK=HK${mother_stock_value[MARKET_HK]:,.2f}"
+    )
+    print(
         f"[{ts}] 母亲资产扣减(折算合计, 1 USD={usd_hkd_rate:.4f} HKD): "
         f"US=${mother_deduct_us:,.2f} HK=HK${mother_deduct_hk:,.2f}"
+    )
+    print(
+        f"[{ts}] 母亲持仓成本扣减(汇总用): "
+        f"US=${mother_stock_cost_us:,.2f} HK=HK${mother_stock_cost_hk:,.2f}"
     )
 
     aggregates = {MARKET_US: _empty_market_totals(), MARKET_HK: _empty_market_totals()}
@@ -581,6 +620,8 @@ def run_report():
         rows_ok,
         notes,
         mother_totals,
+        mother_stock_value,
+        mother_stock_cost,
         usd_hkd_rate,
     )
     html_doc = build_html_report(
@@ -591,6 +632,8 @@ def run_report():
         rows_ok,
         notes,
         mother_totals,
+        mother_stock_value,
+        mother_stock_cost,
         usd_hkd_rate,
     )
 
