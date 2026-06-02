@@ -223,7 +223,7 @@ def get_current_stock_price(symbol, market):
 TENCENT_QUOTE_URL = "http://qt.gtimg.cn/q={code}"
 TENCENT_PE_TTM_INDEX_US = 39
 TENCENT_EPS_TTM_INDEX_US = 47
-TENCENT_PE_TTM_INDEX_HK_PRIMARY = 64
+TENCENT_PE_TTM_INDEX_HK = 71  # 港股 PE TTM（与东财 f164/100 一致）；非 fields[64]
 TENCENT_PE_TTM_INDEX_HK_FALLBACK = 39
 BOGLE_EPS_TTM_FIELDS = ("trailingEps", "epsTrailingTwelveMonths")
 BOGLE_PE_REPORTED_FIELD = "trailingPE"
@@ -264,7 +264,7 @@ def _pe_ttm_from_tencent_fields(
 ) -> tuple[float | None, str]:
     """
     从腾讯行情解析市盈率 TTM（与主流炒股软件同源）。
-    美股：fields[39]；港股：fields[64] 与 fields[39] 取较大值（0700/9988 等口径差异）。
+    美股：fields[39]；港股：fields[71]（fields[39] 为兜底，勿用 fields[64]）。
     """
     if len(fields) <= TENCENT_PE_TTM_INDEX_US:
         return None, ""
@@ -284,19 +284,16 @@ def _pe_ttm_from_tencent_fields(
         return round(pe, 2), "腾讯PE TTM"
 
     if market == MARKET_HK:
-        pe_primary = (
-            _positive_float(fields[TENCENT_PE_TTM_INDEX_HK_PRIMARY])
-            if len(fields) > TENCENT_PE_TTM_INDEX_HK_PRIMARY
+        pe = (
+            _positive_float(fields[TENCENT_PE_TTM_INDEX_HK])
+            if len(fields) > TENCENT_PE_TTM_INDEX_HK
             else None
         )
-        pe_fallback = _positive_float(fields[TENCENT_PE_TTM_INDEX_HK_FALLBACK])
-        if pe_primary and pe_fallback:
-            pe = pe_primary if pe_primary >= pe_fallback else pe_fallback
-        else:
-            pe = pe_primary or pe_fallback
+        if pe is None:
+            pe = _positive_float(fields[TENCENT_PE_TTM_INDEX_HK_FALLBACK])
         if pe is None:
             return None, ""
-        return round(pe, 2), "腾讯PE TTM"
+        return round(pe, 2), f"腾讯PE TTM({pe:.2f})"
 
     return None, ""
 
