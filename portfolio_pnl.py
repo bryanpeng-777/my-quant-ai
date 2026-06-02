@@ -5,7 +5,7 @@
 本轮生意盈亏 = 扣减后当前总市值 − 扣减后生意总投资；
 「投资占比」= 生意总投资 ÷ 扣减后的当前总资产。
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
-逐笔明细盈亏仍按买入价×数量与现价计算。
+逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏。
 """
 import json
 import os
@@ -41,6 +41,7 @@ from stock_utils import (
 )
 
 PURCHASE_RECORDS_FILE = "purchase_records.json"
+POSITIONS_SECTION_TITLE = "逐笔持仓（我的+母亲合计）"
 
 
 def _parse_total_investment(data: dict) -> dict:
@@ -364,7 +365,7 @@ def build_plain_report(
         lines.append("")
 
     if rows_ok:
-        lines.append("════════ 逐笔持仓 ════════")
+        lines.append(f"════════ {POSITIONS_SECTION_TITLE} ════════")
         for r in rows_ok:
             lines.append("────────────────────────")
             lines.append(
@@ -479,7 +480,7 @@ def build_html_report(
         )
     pos_block = ""
     if pos_cards:
-        pos_block = section_heading("逐笔持仓") + "".join(pos_cards)
+        pos_block = section_heading(POSITIONS_SECTION_TITLE) + "".join(pos_cards)
 
     summary_html = "".join(summary_cards) if summary_cards else HTML_EMPTY
     body = (
