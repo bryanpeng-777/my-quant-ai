@@ -3,7 +3,7 @@
 从 purchase_records.json 读取：`records` 逐笔；可选 `total_investment`、`current_total_assets`（按市场）。
 汇总行：生意总投资、当前总市值扣减母亲持仓（成本/市值，跨币种折算），不含母亲现金；
 本轮生意盈亏 = 扣减后当前总市值 − 扣减后生意总投资；
-「投资占比」= 生意总投资 ÷ 扣减后的当前总资产。
+「投资占比」= 扣减母亲持仓成本后的生意总投资 ÷ 扣减后的当前总资产。
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
 逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_vwap、dividend_yield、eps_growth_GAAP、eps_growth_Non_GAAP 手动填写（百分数，未填为 0）；博格买入欲望分别按 GAAP / Non-GAAP 两套 EPS 增长计算：(15-市盈率TTM)/100+股息率+eps_growth/100（市盈率 TTM 优先腾讯行情，与炒股软件一致；失败时回退 yfinance 现价÷trailingEps）。
 """
@@ -246,9 +246,10 @@ def _effective_investment(aggregates: dict, investment_override: dict, market: s
 
 def _ratio_footnote(usd_hkd_rate: float) -> str:
     return (
-        "说明：「投资占比」= 生意总投资 ÷「当前总资产」。"
-        f"扣减母亲总资产（美元+港币合计，按汇率 1 USD = {usd_hkd_rate:.4f} HKD 折算为对应币种）。"
-        "母亲资产来自 mother_assets.json 按现价与货基收益汇总。与持仓市值无关。"
+        "说明：「投资占比」= 扣减母亲持仓成本后的生意总投资 ÷ 扣减后的当前总资产。"
+        f"分母扣减母亲总资产（美元+港币合计，按汇率 1 USD = {usd_hkd_rate:.4f} HKD 折算）；"
+        f"分子扣减母亲持仓成本（purchase_price×股数，同币种折算）。"
+        "母亲资产来自 mother_assets.json。"
     )
 
 
@@ -257,11 +258,13 @@ def _investment_ratio_rows(
     investment_override: dict,
     assets_gross: dict,
     mother_totals: dict,
+    mother_stock_cost: dict,
     usd_hkd_rate: float,
 ) -> list[tuple]:
     """
-    分母为扣减后的当前总资产 (gross − 母亲资产)，仅当分母 > 0 时输出。
-    元组: (市场名, 货币符号, inv, gross, deducted, net, pct_str, 扣减项名称)
+    分母为扣减后的当前总资产 (gross − 母亲总资产)；分子为扣减母亲持仓成本后的生意总投资。
+    元组: (市场名, 货币符号, inv_net, inv_gross, mother_stock_deduct,
+           gross, mother_assets_deduct, net, pct_str)
     """
     rows = []
     for market in (MARKET_US, MARKET_HK):
@@ -273,19 +276,34 @@ def _investment_ratio_rows(
         value = agg["total_value"]
         if summed_cost <= 0 and value <= 0:
             continue
-        deducted = mother_assets_deduction_for_market(
+        mother_assets_deduct = mother_assets_deduction_for_market(
             mother_totals, market, usd_hkd_rate
         )
-        deduct_label = "母亲资产"
-        net = gross - deducted
+        net = gross - mother_assets_deduct
         if net <= 0:
             continue
         name = get_market_name(market)
         cur_sym = get_currency_symbol(market)
-        inv = _effective_investment(aggregates, investment_override, market)
-        pct = (inv / net) * 100.0
+        inv_gross = _effective_investment(aggregates, investment_override, market)
+        mother_stock_deduct = mother_stock_deduction_for_market(
+            mother_stock_cost, market, usd_hkd_rate
+        )
+        inv_net = inv_gross - mother_stock_deduct
+        if inv_net <= 0:
+            continue
+        pct = (inv_net / net) * 100.0
         rows.append(
-            (name, cur_sym, inv, gross, deducted, net, f"{pct:.2f}%", deduct_label)
+            (
+                name,
+                cur_sym,
+                inv_net,
+                inv_gross,
+                mother_stock_deduct,
+                gross,
+                mother_assets_deduct,
+                net,
+                f"{pct:.2f}%",
+            )
         )
     return rows
 
@@ -294,6 +312,8 @@ def _ratio_net_nonpositive_messages(
     aggregates: dict,
     assets_gross: dict,
     mother_totals: dict,
+    mother_stock_cost: dict,
+    investment_override: dict,
     usd_hkd_rate: float,
 ) -> list[str]:
     msgs = []
@@ -304,16 +324,27 @@ def _ratio_net_nonpositive_messages(
         agg = aggregates[market]
         if agg["total_cost"] <= 0 and agg["total_value"] <= 0:
             continue
-        deducted = mother_assets_deduction_for_market(
+        nm = get_market_name(market)
+        cur_sym = get_currency_symbol(market)
+        mother_assets_deduct = mother_assets_deduction_for_market(
             mother_totals, market, usd_hkd_rate
         )
-        net = gross - deducted
+        net = gross - mother_assets_deduct
         if net <= 0:
-            nm = get_market_name(market)
-            cur_sym = get_currency_symbol(market)
             msgs.append(
                 f"{nm}：配置总资产 {_fmt_money(cur_sym, gross)} 减去母亲资产 "
-                f"{_fmt_money(cur_sym, deducted)} 后≤0，无法计算投资占比。"
+                f"{_fmt_money(cur_sym, mother_assets_deduct)} 后≤0，无法计算投资占比。"
+            )
+            continue
+        inv_gross = _effective_investment(aggregates, investment_override, market)
+        mother_stock_deduct = mother_stock_deduction_for_market(
+            mother_stock_cost, market, usd_hkd_rate
+        )
+        inv_net = inv_gross - mother_stock_deduct
+        if inv_net <= 0:
+            msgs.append(
+                f"{nm}：生意总投资 {_fmt_money(cur_sym, inv_gross)} 减去母亲持仓成本 "
+                f"{_fmt_money(cur_sym, mother_stock_deduct)} 后≤0，无法计算投资占比。"
             )
     return msgs
 
@@ -354,23 +385,51 @@ def build_plain_report(
     lines.append("")
 
     ratio_rows = _investment_ratio_rows(
-        aggregates, investment_override, assets_gross, mother_totals, usd_hkd_rate
+        aggregates,
+        investment_override,
+        assets_gross,
+        mother_totals,
+        mother_stock_cost,
+        usd_hkd_rate,
     )
     ratio_warn = _ratio_net_nonpositive_messages(
-        aggregates, assets_gross, mother_totals, usd_hkd_rate
+        aggregates,
+        assets_gross,
+        mother_totals,
+        mother_stock_cost,
+        investment_override,
+        usd_hkd_rate,
     )
     if ratio_rows:
         lines.append(
-            "════════ 投资占比（生意总投资 ÷ 扣减后当前总资产）════════"
+            "════════ 投资占比（扣减后生意总投资 ÷ 扣减后当前总资产）════════"
         )
         lines.append(_ratio_footnote(usd_hkd_rate))
         lines.append("")
-        for name, cur_sym, inv, gross, deducted, net, pct_s, deduct_label in ratio_rows:
+        for (
+            name,
+            cur_sym,
+            inv_net,
+            inv_gross,
+            mother_stock_deduct,
+            gross,
+            mother_assets_deduct,
+            net,
+            pct_s,
+        ) in ratio_rows:
             lines.append(f"{name}")
             lines.append(f"  配置总资产       {_fmt_money(cur_sym, gross)}")
-            lines.append(f"  {deduct_label:<8} {_fmt_money(cur_sym, deducted)}")
+            lines.append(
+                f"  母亲资产         {_fmt_money(cur_sym, mother_assets_deduct)}"
+            )
             lines.append(f"  当前总资产       {_fmt_money(cur_sym, net)}（扣减后）")
-            lines.append(f"  生意总投资       {_fmt_money(cur_sym, inv)}")
+            lines.append(f"  配置生意总投资   {_fmt_money(cur_sym, inv_gross)}")
+            lines.append(
+                f"  母亲持仓成本     {_fmt_money(cur_sym, mother_stock_deduct)}"
+            )
+            lines.append(
+                f"  扣减后生意总投资 {_fmt_money(cur_sym, inv_net)}"
+            )
             lines.append(f"  投资占比         {pct_s}")
             lines.append("")
     elif ratio_warn:
@@ -449,31 +508,59 @@ def build_html_report(
         )
 
     ratio_rows = _investment_ratio_rows(
-        aggregates, investment_override, assets_gross, mother_totals, usd_hkd_rate
+        aggregates,
+        investment_override,
+        assets_gross,
+        mother_totals,
+        mother_stock_cost,
+        usd_hkd_rate,
     )
     ratio_warn = _ratio_net_nonpositive_messages(
-        aggregates, assets_gross, mother_totals, usd_hkd_rate
+        aggregates,
+        assets_gross,
+        mother_totals,
+        mother_stock_cost,
+        investment_override,
+        usd_hkd_rate,
     )
     ratio_block = ""
     if ratio_rows:
         ratio_cards = []
-        for nm, cur_sym, iv, g, deducted, nt, pct_s, deduct_label in ratio_rows:
+        for (
+            nm,
+            cur_sym,
+            inv_net,
+            inv_gross,
+            mother_stock_deduct,
+            g,
+            mother_assets_deduct,
+            nt,
+            pct_s,
+        ) in ratio_rows:
             ratio_cards.append(
                 market_card(
                     nm,
                     "".join(
                         [
                             kv_row("配置总资产", _fmt_money(cur_sym, g)),
-                            kv_row(deduct_label, _fmt_money(cur_sym, deducted)),
+                            kv_row("母亲资产", _fmt_money(cur_sym, mother_assets_deduct)),
                             kv_row("当前总资产(扣减后)", _fmt_money(cur_sym, nt)),
-                            kv_row("生意总投资", _fmt_money(cur_sym, iv)),
+                            kv_row("配置生意总投资", _fmt_money(cur_sym, inv_gross)),
+                            kv_row(
+                                "母亲持仓成本",
+                                _fmt_money(cur_sym, mother_stock_deduct),
+                            ),
+                            kv_row(
+                                "扣减后生意总投资",
+                                _fmt_money(cur_sym, inv_net),
+                            ),
                             kv_row("投资占比", pct_s),
                         ]
                     ),
                 )
             )
         ratio_block = (
-            section_heading("投资占比（生意总投资 ÷ 扣减后当前总资产）")
+            section_heading("投资占比（扣减后生意总投资 ÷ 扣减后当前总资产）")
             + f'<p style="font-size:12px;color:#666;margin:0 0 12px;line-height:1.45;">{h(_ratio_footnote(usd_hkd_rate))}</p>'
             + "".join(ratio_cards)
         )
