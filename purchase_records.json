@@ -61,6 +61,15 @@
       "dividend_yield": 1.1,
       "eps_growth_GAAP": 8.42,
       "eps_growth_Non_GAAP": 2.61
+    },
+    {
+      "symbol": "09992",
+      "purchase_price": 0,
+      "quantity": 0,
+      "earnings_vwap": 160,
+      "dividend_yield": 1.53,
+      "eps_growth_GAAP": 9.69,
+      "eps_growth_Non_GAAP": 9.69
     }
   ]
 }
