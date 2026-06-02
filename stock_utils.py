@@ -101,7 +101,7 @@ def detect_market(symbol):
     从股票代码自动识别市场类型
     
     规则：
-    - 港股：4位纯数字（如：0700, 9988, 3690）
+    - 港股：4～5 位纯数字（如：0700, 9988, 09992）
     - 美股：字母或字母+数字组合（如：AAPL, GOOGL, TSLA）
     
     Args:
@@ -111,10 +111,8 @@ def detect_market(symbol):
         市场类型 (US/HK)
     """
     symbol = symbol.strip()
-    # 港股：4位纯数字
-    if len(symbol) == 4 and symbol.isdigit():
+    if symbol.isdigit() and 4 <= len(symbol) <= 5:
         return MARKET_HK
-    # 美股：其他情况
     return MARKET_US
 
 # 港元联系汇率区间中枢，行情不可用时作兜底
@@ -190,7 +188,7 @@ def get_stock_data(symbol, market=MARKET_US, period="2y", interval="1wk"):
 
 def get_current_stock_price(symbol, market):
     """
-    获取股票当前价格
+    获取股票当前价格（优先 yfinance，失败时回退腾讯行情 fields[3]）。
     
     Args:
         symbol: 股票代码
@@ -199,21 +197,29 @@ def get_current_stock_price(symbol, market):
     Returns:
         当前价格，失败返回 None
     """
+    current_price = None
     try:
         normalized_symbol = normalize_symbol(symbol, market)
         ticker = yf.Ticker(normalized_symbol)
         info = ticker.info
         current_price = info.get('regularMarketPrice') or info.get('currentPrice')
         if current_price is None:
-            # 尝试从历史数据获取最新收盘价
             df = get_stock_data(symbol, market, period="5d", interval="1d")
             if df is not None and len(df) > 0:
                 current_price = df.iloc[-1]['Close']
-        return round(current_price, 2) if current_price is not None else None
     except Exception as e:
         market_name = get_market_name(market)
         print(f"获取{market_name} {symbol} 当前价格时出错: {str(e)}")
-        return None
+
+    if current_price is not None:
+        return round(float(current_price), 2)
+
+    fields = _fetch_tencent_quote_fields(symbol, market)
+    if fields and len(fields) > 3:
+        tencent_price = _positive_float(fields[3])
+        if tencent_price is not None:
+            return round(tencent_price, 2)
+    return None
 
 
 # ==========================================
