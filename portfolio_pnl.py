@@ -5,7 +5,7 @@
 本轮生意盈亏 = 扣减后当前总市值 − 扣减后生意总投资；
 「投资占比」= 生意总投资 ÷ 扣减后的当前总资产。
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
-逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_vwap、dividend_yield、eps_growth_GAAP、eps_growth_Non_GAAP 手动填写（百分数，未填为 0）；博格买入欲望分别按 GAAP / Non-GAAP 两套 EPS 增长计算：(15-市盈率TTM)/100+股息率+eps_growth/100（市盈率 TTM=报告现价÷trailingEps，与 trailingPE 交叉校验）。
+逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_vwap、dividend_yield、eps_growth_GAAP、eps_growth_Non_GAAP 手动填写（百分数，未填为 0）；博格买入欲望分别按 GAAP / Non-GAAP 两套 EPS 增长计算：(15-市盈率TTM)/100+股息率+eps_growth/100（市盈率 TTM 优先腾讯行情，与炒股软件一致；失败时回退 yfinance 现价÷trailingEps）。
 """
 import json
 import os

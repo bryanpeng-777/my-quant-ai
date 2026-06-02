@@ -4,6 +4,8 @@
 支持多市场：美股(US)、港股(HK)
 """
 import os
+import re
+import urllib.request
 import yfinance as yf
 from openai import OpenAI
 import smtplib
@@ -217,11 +219,96 @@ def get_current_stock_price(symbol, market):
 # ==========================================
 # 博格买入欲望
 # ==========================================
-# 市盈率 TTM 定义：现价 ÷ EPS(TTM)。优先用 trailingEps 自行计算，避免 Yahoo trailingPE 偶发为静态 PE。
-# 禁止用 forwardPE（前瞻）或无法校验的单一字段。
+# 市盈率 TTM 优先取腾讯行情（与富途/同花顺等同源），其次 yfinance 现价÷trailingEps。
+TENCENT_QUOTE_URL = "http://qt.gtimg.cn/q={code}"
+TENCENT_PE_TTM_INDEX_US = 39
+TENCENT_EPS_TTM_INDEX_US = 47
+TENCENT_PE_TTM_INDEX_HK_PRIMARY = 64
+TENCENT_PE_TTM_INDEX_HK_FALLBACK = 39
 BOGLE_EPS_TTM_FIELDS = ("trailingEps", "epsTrailingTwelveMonths")
-BOGLE_PE_REPORTED_FIELD = "trailingPE"  # 仅作交叉校验，不作首选
-BOGLE_PE_MISMATCH_RATIO = 0.05  # trailingPE 与计算值相对偏差超过 5% 时以计算值为准
+BOGLE_PE_REPORTED_FIELD = "trailingPE"
+BOGLE_PE_MISMATCH_RATIO = 0.05
+
+
+def _tencent_quote_code(symbol: str, market: str) -> str:
+    """腾讯行情代码：hk00700 / usGOOGL / usBRK.B"""
+    display = get_display_symbol(symbol, market)
+    if market == MARKET_HK:
+        return f"hk{display.zfill(5)}"
+    us_sym = display.upper().replace("-", ".")
+    return f"us{us_sym}"
+
+
+def _fetch_tencent_quote_fields(symbol: str, market: str) -> list[str] | None:
+    code = _tencent_quote_code(symbol, market)
+    try:
+        req = urllib.request.Request(
+            TENCENT_QUOTE_URL.format(code=code),
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            text = resp.read().decode("gbk", errors="replace")
+        match = re.search(rf'v_{re.escape(code)}="(.*)";', text, re.IGNORECASE)
+        if not match:
+            return None
+        return match.group(1).split("~")
+    except Exception as e:
+        market_name = get_market_name(market)
+        print(f"[{datetime.now()}] ⚠️  {market_name} {symbol} 腾讯行情拉取失败: {e}")
+        return None
+
+
+def _pe_ttm_from_tencent_fields(
+    fields: list[str],
+    market: str,
+) -> tuple[float | None, str]:
+    """
+    从腾讯行情解析市盈率 TTM（与主流炒股软件同源）。
+    美股：fields[39]；港股：fields[64] 与 fields[39] 取较大值（0700/9988 等口径差异）。
+    """
+    if len(fields) <= TENCENT_PE_TTM_INDEX_US:
+        return None, ""
+
+    if market == MARKET_US:
+        pe = _positive_float(fields[TENCENT_PE_TTM_INDEX_US])
+        if pe is None:
+            return None, ""
+        price = _positive_float(fields[3])
+        eps = (
+            _positive_float(fields[TENCENT_EPS_TTM_INDEX_US])
+            if len(fields) > TENCENT_EPS_TTM_INDEX_US
+            else None
+        )
+        if price and eps:
+            return round(pe, 2), f"腾讯PE TTM({price:.2f}÷{eps:.2f})"
+        return round(pe, 2), "腾讯PE TTM"
+
+    if market == MARKET_HK:
+        pe_primary = (
+            _positive_float(fields[TENCENT_PE_TTM_INDEX_HK_PRIMARY])
+            if len(fields) > TENCENT_PE_TTM_INDEX_HK_PRIMARY
+            else None
+        )
+        pe_fallback = _positive_float(fields[TENCENT_PE_TTM_INDEX_HK_FALLBACK])
+        if pe_primary and pe_fallback:
+            pe = pe_primary if pe_primary >= pe_fallback else pe_fallback
+        else:
+            pe = pe_primary or pe_fallback
+        if pe is None:
+            return None, ""
+        return round(pe, 2), "腾讯PE TTM"
+
+    return None, ""
+
+
+def _resolve_pe_ttm_from_tencent(
+    symbol: str,
+    market: str,
+) -> tuple[float | None, str]:
+    fields = _fetch_tencent_quote_fields(symbol, market)
+    if not fields:
+        return None, ""
+    return _pe_ttm_from_tencent_fields(fields, market)
 
 
 def _positive_float(raw) -> float | None:
@@ -319,12 +406,17 @@ def resolve_pe_ttm(
 def get_bogle_fundamentals(symbol, market, current_price: float | None = None):
     """
     获取博格买入欲望所需市盈率 TTM（股息率改由 purchase_records 手动配置）。
-    传入 current_price 时与报告现价一致，PE TTM = current_price / EPS(TTM)。
+    优先腾讯行情 PE TTM（与炒股软件一致）；失败时回退 yfinance 现价÷EPS(TTM)。
 
     Returns:
         {"pe_ttm": float|None, "pe_ttm_source": str, "dividend_yield": None}
     """
     empty = {"pe_ttm": None, "pe_ttm_source": "", "dividend_yield": None}
+
+    pe_ttm, source = _resolve_pe_ttm_from_tencent(symbol, market)
+    if pe_ttm is not None:
+        return {"pe_ttm": pe_ttm, "pe_ttm_source": source, "dividend_yield": None}
+
     try:
         normalized_symbol = normalize_symbol(symbol, market)
         ticker = yf.Ticker(normalized_symbol)
