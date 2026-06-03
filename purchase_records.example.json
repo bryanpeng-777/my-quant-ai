@@ -11,6 +11,7 @@
   },
   "records": [
     // 美股示例：股票代码为字母组合（如 AAPL, GOOGL, TSLA）
+    // VOO 等指数 ETF：仅需 symbol / purchase_price / quantity，无需 earnings_vwap、eps_growth、博格相关字段
     // 同一只股票可以有多次买入，每次买入独立计算止损
     {
       "symbol": "AAPL",              // 股票代码（美股：字母组合）

@@ -5,7 +5,7 @@
 本轮生意盈亏 = 扣减后当前总市值 − 扣减后生意总投资；
 「投资占比」= 扣减母亲持仓成本后的生意总投资 ÷ 扣减后的当前总资产。
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
-逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_vwap、dividend_yield、eps_growth_GAAP、eps_growth_Non_GAAP 手动填写（百分数，未填为 0）；博格买入欲望分别按 GAAP / Non-GAAP 两套 EPS 增长计算：(15-市盈率TTM)/100+股息率+eps_growth/100（市盈率 TTM 优先腾讯行情，与炒股软件一致；失败时回退 yfinance 现价÷trailingEps）。
+逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_vwap、dividend_yield、eps_growth_GAAP、eps_growth_Non_GAAP 手动填写（百分数，未填为 0）；博格买入欲望分别按 GAAP / Non-GAAP 两套 EPS 增长计算：(15-市盈率TTM)/100+股息率+eps_growth/100（市盈率 TTM 优先腾讯行情，与炒股软件一致；失败时回退 yfinance 现价÷trailingEps）。VOO 等指数 ETF 不适用上述基本面指标，报告不计算、不展示财报日 VWAP / EPS 增长 / 博格买入欲望。
 """
 import json
 import os
@@ -44,6 +44,12 @@ from stock_utils import (
 
 PURCHASE_RECORDS_FILE = "purchase_records.json"
 POSITIONS_SECTION_TITLE = "逐笔持仓（我的+母亲合计）"
+# 指数 ETF：不适用个股财报日 VWAP、EPS 增长、博格买入欲望
+SKIP_STOCK_FUNDAMENTAL_SYMBOLS = frozenset({"VOO"})
+
+
+def _shows_stock_fundamentals(symbol: str) -> bool:
+    return (symbol or "").strip().upper() not in SKIP_STOCK_FUNDAMENTAL_SYMBOLS
 
 
 def _parse_total_investment(data: dict) -> dict:
@@ -114,6 +120,44 @@ def _parse_record_optional_float(record: dict, field: str) -> float:
 
 def _fmt_pct(value: float) -> str:
     return f"{value:.2f}%"
+
+
+def _append_position_fundamental_plain_lines(lines: list, r: dict) -> None:
+    """逐笔基本面行（纯文本）；指数 ETF 等跳过。"""
+    if r.get("show_fundamentals", True):
+        lines.append(f"  财报日VWAP {r['earnings_vwap']}")
+        lines.append(f"  EPS增长(GAAP)     {r['eps_growth_GAAP']}")
+        lines.append(f"  EPS增长(Non-GAAP) {r['eps_growth_Non_GAAP']}")
+    lines.append(f"  股息率     {r['dividend_yield']}")
+    if r.get("show_fundamentals", True):
+        lines.append(f"  博格买入欲望(GAAP)     {r['bogle_buying_desire_GAAP']}")
+        lines.append(f"                       {r['bogle_buying_desire_detail_GAAP']}")
+        lines.append(f"  博格买入欲望(Non-GAAP) {r['bogle_buying_desire_Non_GAAP']}")
+        lines.append(f"                       {r['bogle_buying_desire_detail_Non_GAAP']}")
+
+
+def _position_fundamental_kv_html(r: dict) -> str:
+    """逐笔基本面键值对（HTML）；指数 ETF 等跳过。"""
+    parts = []
+    if r.get("show_fundamentals", True):
+        parts.extend(
+            [
+                kv_row("财报日VWAP", r["earnings_vwap"]),
+                kv_row("EPS增长(GAAP)", r["eps_growth_GAAP"]),
+                kv_row("EPS增长(Non-GAAP)", r["eps_growth_Non_GAAP"]),
+            ]
+        )
+    parts.append(kv_row("股息率", r["dividend_yield"]))
+    if r.get("show_fundamentals", True):
+        parts.extend(
+            [
+                kv_row("博格买入欲望(GAAP)", r["bogle_buying_desire_GAAP"]),
+                kv_row("　计算过程(GAAP)", r["bogle_buying_desire_detail_GAAP"]),
+                kv_row("博格买入欲望(Non-GAAP)", r["bogle_buying_desire_Non_GAAP"]),
+                kv_row("　计算过程(Non-GAAP)", r["bogle_buying_desire_detail_Non_GAAP"]),
+            ]
+        )
+    return "".join(parts)
 
 
 def _empty_market_dict():
@@ -445,14 +489,7 @@ def build_plain_report(
             )
             lines.append(f"  股数       {r['qty']}")
             lines.append(f"  买入价     {r['buy']}    现价 {r['current']}")
-            lines.append(f"  财报日VWAP {r['earnings_vwap']}")
-            lines.append(f"  EPS增长(GAAP)     {r['eps_growth_GAAP']}")
-            lines.append(f"  EPS增长(Non-GAAP) {r['eps_growth_Non_GAAP']}")
-            lines.append(f"  股息率     {r['dividend_yield']}")
-            lines.append(f"  博格买入欲望(GAAP)     {r['bogle_buying_desire_GAAP']}")
-            lines.append(f"                       {r['bogle_buying_desire_detail_GAAP']}")
-            lines.append(f"  博格买入欲望(Non-GAAP) {r['bogle_buying_desire_Non_GAAP']}")
-            lines.append(f"                       {r['bogle_buying_desire_detail_Non_GAAP']}")
+            _append_position_fundamental_plain_lines(lines, r)
             lines.append(f"  成本       {r['cost']}    市值 {r['value']}")
             lines.append(f"  盈亏       {r['pnl']}")
         lines.append("────────────────────────")
@@ -579,14 +616,7 @@ def build_html_report(
                         kv_row("股数", r["qty"]),
                         kv_row("买入价", r["buy"]),
                         kv_row("现价", r["current"]),
-                        kv_row("财报日VWAP", r["earnings_vwap"]),
-                        kv_row("EPS增长(GAAP)", r["eps_growth_GAAP"]),
-                        kv_row("EPS增长(Non-GAAP)", r["eps_growth_Non_GAAP"]),
-                        kv_row("股息率", r["dividend_yield"]),
-                        kv_row("博格买入欲望(GAAP)", r["bogle_buying_desire_GAAP"]),
-                        kv_row("　计算过程(GAAP)", r["bogle_buying_desire_detail_GAAP"]),
-                        kv_row("博格买入欲望(Non-GAAP)", r["bogle_buying_desire_Non_GAAP"]),
-                        kv_row("　计算过程(Non-GAAP)", r["bogle_buying_desire_detail_Non_GAAP"]),
+                        _position_fundamental_kv_html(r),
                         kv_row("成本", r["cost"]),
                         kv_row("市值", r["value"]),
                         kv_row("盈亏", r["pnl"], pnl=True),
@@ -712,48 +742,64 @@ def run_report():
         aggregates[market]["total_value"] += value
         aggregates[market]["total_pnl"] += pnl  # 仅备用；汇总本轮生意盈亏以总市值−生意总投资为准
 
-        eps_growth_gaap = _parse_record_optional_float(record, "eps_growth_GAAP")
-        eps_growth_non_gaap = _parse_record_optional_float(record, "eps_growth_Non_GAAP")
+        show_fundamentals = _shows_stock_fundamentals(symbol)
         dividend_pct = _parse_record_optional_float(record, "dividend_yield")
-        fundamentals = get_bogle_fundamentals(symbol, market, current_price=current_price)
-        pe_ttm_source = fundamentals.get("pe_ttm_source", "")
-        dividend_decimal = dividend_pct / 100.0
-        bogle_gaap_result, bogle_gaap_detail = build_bogle_buying_desire_breakdown(
-            fundamentals["pe_ttm"],
-            dividend_decimal,
-            eps_growth_gaap,
-            eps_growth_label="GAAP",
-            pe_ttm_source=pe_ttm_source,
-        )
-        bogle_non_gaap_result, bogle_non_gaap_detail = build_bogle_buying_desire_breakdown(
-            fundamentals["pe_ttm"],
-            dividend_decimal,
-            eps_growth_non_gaap,
-            eps_growth_label="Non-GAAP",
-            pe_ttm_source=pe_ttm_source,
-        )
 
-        rows_ok.append({
+        row = {
             "num": i + 1,
             "market": mname,
             "symbol": display,
+            "show_fundamentals": show_fundamentals,
             "qty": f"{quantity:g}",
             "buy": _fmt_money(cur_sym, float(purchase_price)),
             "current": _fmt_money(cur_sym, current_price),
-            "earnings_vwap": _fmt_money(
-                cur_sym, _parse_record_optional_float(record, "earnings_vwap")
-            ),
-            "eps_growth_GAAP": _fmt_pct(eps_growth_gaap),
-            "eps_growth_Non_GAAP": _fmt_pct(eps_growth_non_gaap),
             "dividend_yield": _fmt_pct(dividend_pct),
-            "bogle_buying_desire_GAAP": bogle_gaap_result,
-            "bogle_buying_desire_detail_GAAP": bogle_gaap_detail,
-            "bogle_buying_desire_Non_GAAP": bogle_non_gaap_result,
-            "bogle_buying_desire_detail_Non_GAAP": bogle_non_gaap_detail,
             "cost": _fmt_money(cur_sym, cost),
             "value": _fmt_money(cur_sym, value),
             "pnl": _fmt_money(cur_sym, pnl, signed=True),
-        })
+        }
+
+        if show_fundamentals:
+            eps_growth_gaap = _parse_record_optional_float(record, "eps_growth_GAAP")
+            eps_growth_non_gaap = _parse_record_optional_float(
+                record, "eps_growth_Non_GAAP"
+            )
+            fundamentals = get_bogle_fundamentals(
+                symbol, market, current_price=current_price
+            )
+            pe_ttm_source = fundamentals.get("pe_ttm_source", "")
+            dividend_decimal = dividend_pct / 100.0
+            bogle_gaap_result, bogle_gaap_detail = build_bogle_buying_desire_breakdown(
+                fundamentals["pe_ttm"],
+                dividend_decimal,
+                eps_growth_gaap,
+                eps_growth_label="GAAP",
+                pe_ttm_source=pe_ttm_source,
+            )
+            bogle_non_gaap_result, bogle_non_gaap_detail = (
+                build_bogle_buying_desire_breakdown(
+                    fundamentals["pe_ttm"],
+                    dividend_decimal,
+                    eps_growth_non_gaap,
+                    eps_growth_label="Non-GAAP",
+                    pe_ttm_source=pe_ttm_source,
+                )
+            )
+            row.update(
+                {
+                    "earnings_vwap": _fmt_money(
+                        cur_sym, _parse_record_optional_float(record, "earnings_vwap")
+                    ),
+                    "eps_growth_GAAP": _fmt_pct(eps_growth_gaap),
+                    "eps_growth_Non_GAAP": _fmt_pct(eps_growth_non_gaap),
+                    "bogle_buying_desire_GAAP": bogle_gaap_result,
+                    "bogle_buying_desire_detail_GAAP": bogle_gaap_detail,
+                    "bogle_buying_desire_Non_GAAP": bogle_non_gaap_result,
+                    "bogle_buying_desire_detail_Non_GAAP": bogle_non_gaap_detail,
+                }
+            )
+
+        rows_ok.append(row)
 
     notes = build_notes_block(rows_skip_qty, rows_price_fail)
     plain = build_plain_report(
