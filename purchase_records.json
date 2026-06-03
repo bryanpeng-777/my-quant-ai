@@ -1,6 +1,6 @@
 {
   "total_investment": {
-    "US": 53759.53,
+    "US": 60024.23,
     "HK": 140508
   },
   "current_total_assets": {
@@ -24,8 +24,8 @@
     },
     {
       "symbol": "NVDA",
-      "purchase_price": 174.80,
-      "quantity": 3,
+      "purchase_price": 206.30,
+      "quantity": 13,
       "earnings_vwap": 222,
       "dividend_yield": 0.04,
       "eps_growth_GAAP": 33.27,
@@ -42,8 +42,8 @@
     },
     {
       "symbol": "Dell",
-      "purchase_price": 413.95,
-      "quantity": 1,
+      "purchase_price": 410.83,
+      "quantity": 11,
       "earnings_vwap": 414,
       "dividend_yield": 2.1,
       "eps_growth_GAAP": 44.59,
