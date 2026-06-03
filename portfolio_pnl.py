@@ -5,7 +5,7 @@
 本轮生意盈亏 = 扣减后当前总市值 − 扣减后生意总投资；
 「投资占比」= 扣减母亲持仓成本后的生意总投资 ÷ 扣减后的当前总资产。
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
-逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_vwap、dividend_yield、eps_growth_GAAP、eps_growth_Non_GAAP 手动填写（百分数，未填为 0）；博格买入欲望分别按 GAAP / Non-GAAP 两套 EPS 增长计算：(15-市盈率TTM)/100+股息率+eps_growth/100（市盈率 TTM 优先腾讯行情，与炒股软件一致；失败时回退 yfinance 现价÷trailingEps）。VOO 等指数 ETF 不适用上述基本面指标，报告不计算、不展示财报日 VWAP / EPS 增长 / 博格买入欲望。
+逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_update_date（财报更新日期，如 2026-02-05；空字符串占位展示「待填写」）、earnings_vwap、dividend_yield、eps_growth_GAAP、eps_growth_Non_GAAP 手动填写（百分数，未填为 0）；博格买入欲望分别按 GAAP / Non-GAAP 两套 EPS 增长计算：(15-市盈率TTM)/100+股息率+eps_growth/100（市盈率 TTM 优先腾讯行情，与炒股软件一致；失败时回退 yfinance 现价÷trailingEps）。VOO 等指数 ETF 不适用上述基本面指标，报告不计算、不展示财报日 VWAP / EPS 增长 / 博格买入欲望。
 """
 import json
 import os
@@ -122,8 +122,36 @@ def _fmt_pct(value: float) -> str:
     return f"{value:.2f}%"
 
 
+_EARNINGS_UPDATE_DATE_PLACEHOLDERS = frozenset({"", "待填写", "TBD", "-"})
+
+
+def _parse_record_earnings_update_date(record: dict) -> str:
+    """
+    逐笔 optional 财报更新日期（earnings_update_date）。
+    接受 YYYY-MM-DD 或 YYYY/MM/DD；未配置字段为「—」，空值/待填写为占位「待填写」。
+    """
+    raw = record.get("earnings_update_date")
+    if raw is None:
+        return "—"
+    text = str(raw).strip()
+    if text in _EARNINGS_UPDATE_DATE_PLACEHOLDERS:
+        return "待填写"
+    for sep in ("/", "."):
+        text = text.replace(sep, "-")
+    try:
+        parsed = date.fromisoformat(text)
+        return parsed.isoformat()
+    except ValueError:
+        print(
+            f"[{datetime.now()}] ⚠️  {record.get('symbol', '?')} "
+            f"earnings_update_date 格式无效（期望 YYYY-MM-DD）: {raw!r}"
+        )
+        return str(raw).strip()
+
+
 def _append_position_fundamental_plain_lines(lines: list, r: dict) -> None:
-    """逐笔基本面行（纯文本）；指数 ETF 等跳过。"""
+    """逐笔基本面行（纯文本）；指数 ETF 等跳过部分指标。"""
+    lines.append(f"  财报更新日期 {r['earnings_update_date']}")
     if r.get("show_fundamentals", True):
         lines.append(f"  财报日VWAP {r['earnings_vwap']}")
         lines.append(f"  EPS增长(GAAP)     {r['eps_growth_GAAP']}")
@@ -137,8 +165,8 @@ def _append_position_fundamental_plain_lines(lines: list, r: dict) -> None:
 
 
 def _position_fundamental_kv_html(r: dict) -> str:
-    """逐笔基本面键值对（HTML）；指数 ETF 等跳过。"""
-    parts = []
+    """逐笔基本面键值对（HTML）；指数 ETF 等跳过部分指标。"""
+    parts = [kv_row("财报更新日期", r["earnings_update_date"])]
     if r.get("show_fundamentals", True):
         parts.extend(
             [
@@ -753,6 +781,7 @@ def run_report():
             "qty": f"{quantity:g}",
             "buy": _fmt_money(cur_sym, float(purchase_price)),
             "current": _fmt_money(cur_sym, current_price),
+            "earnings_update_date": _parse_record_earnings_update_date(record),
             "dividend_yield": _fmt_pct(dividend_pct),
             "cost": _fmt_money(cur_sym, cost),
             "value": _fmt_money(cur_sym, value),

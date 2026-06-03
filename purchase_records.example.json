@@ -17,6 +17,7 @@
       "symbol": "AAPL",              // 股票代码（美股：字母组合）
       "purchase_price": 150.50,      // 购买价格（美元）
       "quantity": 100,               // 购买数量（可选，用于计算盈亏）
+      "earnings_update_date": "",          // 可选：最新一期财报更新日期（YYYY-MM-DD）；空字符串为占位，报告展示「待填写」
       "earnings_vwap": 0,            // 可选：财报日 VWAP，未填视为 0
       "dividend_yield": 0,           // 可选：股息率（百分数，如 0.8 表示 0.8%），未填视为 0
       "eps_growth_GAAP": 0,          // 可选：EPS 增长 GAAP（百分数，如 5 表示 5%），未填视为 0
