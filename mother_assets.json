@@ -3,6 +3,10 @@
     "US": 16243.48,
     "HK": 8498.47
   },
+  "dividend_income": {
+    "US": 0,
+    "HK": 347
+  },
   "money_funds": {
     "US": {
       "annual_rate_pct": 3.5,

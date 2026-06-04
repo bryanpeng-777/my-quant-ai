@@ -3,6 +3,7 @@
 从 mother_assets.json 读取：
 - cash_balances：分市场货币基金本金（本金）
 - money_funds：年化收益率 annual_rate_pct、存放起始日 deposit_date（分 US/HK）
+- dividend_income：分市场股息收入（手动填写，计入总资产）
 - records：持仓股数
 
 现金收益由 mother_cash_interest.py 按自然日逐日计息（闰年感知、可选日复利）。
@@ -61,6 +62,26 @@ def _parse_cash_balances(data: dict) -> dict:
                 out[MARKET_HK] = float(raw["HK"])
     except (TypeError, ValueError):
         print(f"[{datetime.now()}] ⚠️  cash_balances 格式无效，按 0 处理")
+    return out
+
+
+def _parse_dividend_income(data: dict) -> dict:
+    """dividend_income: { US, HK } 手动填写的累计股息收入（分市场币种）。"""
+    out = {MARKET_US: 0.0, MARKET_HK: 0.0}
+    raw = data.get("dividend_income")
+    if raw is None:
+        return out
+    try:
+        if isinstance(raw, (int, float)):
+            out[MARKET_US] = float(raw)
+            return out
+        if isinstance(raw, dict):
+            if raw.get("US") is not None:
+                out[MARKET_US] = float(raw["US"])
+            if raw.get("HK") is not None:
+                out[MARKET_HK] = float(raw["HK"])
+    except (TypeError, ValueError):
+        print(f"[{datetime.now()}] ⚠️  dividend_income 格式无效，按 0 处理")
     return out
 
 
@@ -137,16 +158,18 @@ def _parse_money_funds(data: dict, cash_by_market: dict) -> tuple[dict, list[str
 
 
 def load_mother_assets_source():
-    """返回 (records, cash_by_market, money_funds_cfg, warnings)。"""
+    """返回 (records, cash_by_market, money_funds_cfg, dividend_by_market, warnings)。"""
     empty_cash = {MARKET_US: 0.0, MARKET_HK: 0.0}
     empty_funds = {MARKET_US: None, MARKET_HK: None}
+    empty_dividend = {MARKET_US: 0.0, MARKET_HK: 0.0}
 
     def _from_data(data: dict):
         if not isinstance(data, dict):
-            return [], empty_cash.copy(), empty_funds.copy(), []
+            return [], empty_cash.copy(), empty_funds.copy(), empty_dividend.copy(), []
         cash = _parse_cash_balances(data)
         funds, warns = _parse_money_funds(data, cash)
-        return data.get("records", []), cash, funds, warns
+        dividend = _parse_dividend_income(data)
+        return data.get("records", []), cash, funds, dividend, warns
 
     env_raw = os.environ.get("MOTHER_ASSETS_JSON", "").strip()
     if env_raw:
@@ -154,20 +177,20 @@ def load_mother_assets_source():
             return _from_data(json.loads(env_raw))
         except json.JSONDecodeError:
             print(f"[{datetime.now()}] ⚠️  MOTHER_ASSETS_JSON 不是合法 JSON")
-            return [], empty_cash.copy(), empty_funds.copy(), []
+            return [], empty_cash.copy(), empty_funds.copy(), empty_dividend.copy(), []
 
     if not Path(MOTHER_ASSETS_FILE).exists():
-        return [], empty_cash.copy(), empty_funds.copy(), []
+        return [], empty_cash.copy(), empty_funds.copy(), empty_dividend.copy(), []
 
     try:
         with open(MOTHER_ASSETS_FILE, "r", encoding="utf-8") as f:
             return _from_data(json.load(f))
     except json.JSONDecodeError:
         print(f"[{datetime.now()}] ⚠️  {MOTHER_ASSETS_FILE} 格式错误")
-        return [], empty_cash.copy(), empty_funds.copy(), []
+        return [], empty_cash.copy(), empty_funds.copy(), empty_dividend.copy(), []
     except Exception as e:
         print(f"[{datetime.now()}] ⚠️  加载母亲资产配置时出错: {e}")
-        return [], empty_cash.copy(), empty_funds.copy(), []
+        return [], empty_cash.copy(), empty_funds.copy(), empty_dividend.copy(), []
 
 
 def _fmt_money(cur_sym: str, amount: float, signed: bool = False) -> str:
@@ -186,6 +209,7 @@ def _empty_market_totals():
         "cash_interest": 0.0,
         "cash": 0.0,
         "stock_value": 0.0,
+        "dividend_income": 0.0,
         "total": 0.0,
         "fund_days": None,
         "fund_rate_pct": None,
@@ -244,6 +268,13 @@ def apply_cash_fund_totals(
             agg["fund_interest_enabled"] = False
 
 
+def apply_dividend_income_totals(aggregates: dict, dividend_by_market: dict):
+    """将手动配置的股息收入写入各市场汇总。"""
+    for market in (MARKET_US, MARKET_HK):
+        amount = float(dividend_by_market.get(market, 0) or 0)
+        aggregates[market]["dividend_income"] = round(max(amount, 0.0), 2)
+
+
 def _summary_rows(aggregates: dict) -> list[list[str]]:
     rows = []
     for market in (MARKET_US, MARKET_HK):
@@ -254,9 +285,10 @@ def _summary_rows(aggregates: dict) -> list[list[str]]:
         interest = agg["cash_interest"]
         cash_total = agg["cash"]
         stock_val = agg["stock_value"]
-        total = cash_total + stock_val
-        if principal <= 0 and interest <= 0 and stock_val <= 0:
-            rows.append([name, "—", "—", "—", "—", "—"])
+        dividend = agg["dividend_income"]
+        total = agg["total"]
+        if principal <= 0 and interest <= 0 and stock_val <= 0 and dividend <= 0:
+            rows.append([name, "—", "—", "—", "—", "—", "—"])
         else:
             rows.append(
                 [
@@ -265,6 +297,7 @@ def _summary_rows(aggregates: dict) -> list[list[str]]:
                     _fmt_money(cur_sym, interest, signed=True),
                     _fmt_money(cur_sym, cash_total),
                     _fmt_money(cur_sym, stock_val),
+                    _fmt_money(cur_sym, dividend),
                     _fmt_money(cur_sym, total),
                 ]
             )
@@ -297,7 +330,9 @@ def _fund_detail_lines(market: str, aggregates: dict) -> list[str]:
 def _footnote() -> str:
     return (
         "说明：现金收益由 mother_cash_interest.py 逐日计息（闰年按 365/366 天折算日利率）；"
-        "默认按日复利；deposit_date 为起息日（含当日）。报告日取北京时间。本地核验："
+        "默认按日复利；deposit_date 为起息日（含当日）。"
+        "dividend_income 为分市场手动填写的累计股息，直接计入总资产。"
+        "报告日取北京时间。本地核验："
         "python mother_cash_interest.py --principal 本金 --rate 年化 --from 起息日"
     )
 
@@ -322,12 +357,13 @@ def build_plain_report(ts, aggregates, rows_ok, notes) -> str:
 
     lines.append("════════ 按市场汇总 ════════")
     for row in _summary_rows(aggregates):
-        m, principal, interest, cash, stock, total = row
+        m, principal, interest, cash, stock, dividend, total = row
         lines.append(f"{m}")
         lines.append(f"  货币基金本金   {principal}")
         lines.append(f"  累计现金收益   {interest}")
         lines.append(f"  现金合计       {cash}")
         lines.append(f"  股票市值       {stock}")
+        lines.append(f"  股息收入       {dividend}")
         lines.append(f"  合计总资产     {total}")
         lines.append("")
     lines.append(_footnote())
@@ -387,8 +423,8 @@ def build_html_report(ts, aggregates, rows_ok, notes) -> str:
 
     summary_cards = []
     for row in _summary_rows(aggregates):
-        m, principal, interest, cash, stock, total = row
-        if principal == "—" and stock == "—":
+        m, principal, interest, cash, stock, dividend, total = row
+        if principal == "—" and stock == "—" and dividend == "—":
             continue
         summary_cards.append(
             market_card(
@@ -399,6 +435,7 @@ def build_html_report(ts, aggregates, rows_ok, notes) -> str:
                         kv_row("累计现金收益", interest, pnl=True),
                         kv_row("现金合计", cash),
                         kv_row("股票市值", stock),
+                        kv_row("股息收入", dividend),
                         kv_row("合计总资产", total),
                     ]
                 ),
@@ -452,7 +489,9 @@ def build_notes_block(rows_skip: list, rows_price_fail: list, config_warnings: l
 def run_report():
     ts = datetime.now(REPORT_TZ)
     as_of = report_as_of_date()
-    records, cash_by_market, money_funds_cfg, config_warnings = load_mother_assets_source()
+    records, cash_by_market, money_funds_cfg, dividend_by_market, config_warnings = (
+        load_mother_assets_source()
+    )
 
     aggregates = {
         MARKET_US: _empty_market_totals(),
@@ -461,13 +500,19 @@ def run_report():
     apply_cash_fund_totals(
         aggregates, cash_by_market, money_funds_cfg, as_of, config_warnings
     )
+    apply_dividend_income_totals(aggregates, dividend_by_market)
 
     rows_ok = []
     rows_skip = []
     rows_price_fail = []
 
     has_config = (
-        any(aggregates[m]["cash"] > 0 or aggregates[m]["cash_principal"] > 0 for m in (MARKET_US, MARKET_HK))
+        any(
+            aggregates[m]["cash"] > 0
+            or aggregates[m]["cash_principal"] > 0
+            or aggregates[m]["dividend_income"] > 0
+            for m in (MARKET_US, MARKET_HK)
+        )
         or bool(records)
     )
     if not has_config:
@@ -523,7 +568,9 @@ def run_report():
 
     for market in (MARKET_US, MARKET_HK):
         agg = aggregates[market]
-        agg["total"] = agg["cash"] + agg["stock_value"]
+        agg["total"] = round(
+            agg["cash"] + agg["stock_value"] + agg["dividend_income"], 2
+        )
 
     notes = build_notes_block(rows_skip, rows_price_fail, config_warnings)
     plain = build_plain_report(ts, aggregates, rows_ok, notes)

@@ -1,5 +1,5 @@
 """
-按 mother_assets.json 计算母亲名下各市场总资产（现金含货基收益 + 持仓市值）。
+按 mother_assets.json 计算母亲名下各市场总资产（现金含货基收益 + 持仓市值 + 股息收入）。
 供 portfolio_pnl 等模块扣减「我的当前总资产」时使用。
 """
 from datetime import date
@@ -7,6 +7,7 @@ from datetime import date
 from mother_assets_report import (
     _empty_market_totals,
     apply_cash_fund_totals,
+    apply_dividend_income_totals,
     load_mother_assets_source,
 )
 from stock_utils import MARKET_HK, MARKET_US, detect_market, get_current_stock_price
@@ -51,9 +52,11 @@ def _accumulate_mother_stocks(records: list) -> tuple[dict, dict]:
 
 def compute_mother_assets_totals(as_of: date) -> dict:
     """
-    返回 { MARKET_US: float, MARKET_HK: float }，为各市场现金+股票市值合计。
+    返回 { MARKET_US: float, MARKET_HK: float }，为各市场现金+股票市值+股息收入合计。
     """
-    records, cash_by_market, money_funds_cfg, _ = load_mother_assets_source()
+    records, cash_by_market, money_funds_cfg, dividend_by_market, _ = (
+        load_mother_assets_source()
+    )
     aggregates = {
         MARKET_US: _empty_market_totals(),
         MARKET_HK: _empty_market_totals(),
@@ -61,6 +64,7 @@ def compute_mother_assets_totals(as_of: date) -> dict:
     apply_cash_fund_totals(
         aggregates, cash_by_market, money_funds_cfg, as_of, []
     )
+    apply_dividend_income_totals(aggregates, dividend_by_market)
 
     stock_value, _ = _accumulate_mother_stocks(records)
     for market in (MARKET_US, MARKET_HK):
@@ -69,7 +73,9 @@ def compute_mother_assets_totals(as_of: date) -> dict:
     out = {MARKET_US: 0.0, MARKET_HK: 0.0}
     for market in (MARKET_US, MARKET_HK):
         agg = aggregates[market]
-        out[market] = round(agg["cash"] + agg["stock_value"], 2)
+        out[market] = round(
+            agg["cash"] + agg["stock_value"] + agg["dividend_income"], 2
+        )
     return out
 
 
@@ -78,7 +84,7 @@ def compute_mother_stock_totals(_as_of: date | None = None) -> tuple[dict, dict]
     返回母亲持仓分市场汇总：(市值, 成本)。
     均为 { MARKET_US: float, MARKET_HK: float }。
     """
-    records, _, _, _ = load_mother_assets_source()
+    records, _, _, _, _ = load_mother_assets_source()
     return _accumulate_mother_stocks(records)
 
 
