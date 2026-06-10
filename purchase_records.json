@@ -1,6 +1,6 @@
 {
   "total_investment": {
-    "US": 60024.23,
+    "US": 67861.23,
     "HK": 140508
   },
   "current_total_assets": {
@@ -46,8 +46,8 @@
     },
     {
       "symbol": "Dell",
-      "purchase_price": 410.83,
-      "quantity": 11,
+      "purchase_price": 398.444,
+      "quantity": 31,
       "earnings_update_date": "2026-05-29",
       "earnings_vwap": 414,
       "dividend_yield": 2.1,
