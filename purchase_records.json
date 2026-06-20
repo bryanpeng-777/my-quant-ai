@@ -1,7 +1,7 @@
 {
   "total_investment": {
     "US": 67861.23,
-    "HK": 140508
+    "HK": 173408
   },
   "current_total_assets": {
     "US": 181035.0,
@@ -66,8 +66,8 @@
     },
     {
       "symbol": "09992",
-      "purchase_price": 160,
-      "quantity": 1,
+      "purchase_price": 164.5,
+      "quantity": 200,
       "earnings_update_date": "2026-05-13",
       "earnings_vwap": 160,
       "dividend_yield": 1.53,
