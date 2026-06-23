@@ -1,0 +1,16 @@
+{
+  "ifrs": {
+    "cur_yi": 156.31,
+    "yoy_pct": 66.0,
+    "unit": "RMB_yi"
+  },
+  "non_ifrs": {
+    "cur_yi": 167.1,
+    "prev_yi": 510.66,
+    "yoy_pct": -67.0,
+    "yoy_calc": -67.27764070027024,
+    "unit": "RMB_yi"
+  },
+  "source": "hkex_pdf",
+  "notice_id": "nokHKEX-EPS-20260319-12059114"
+}

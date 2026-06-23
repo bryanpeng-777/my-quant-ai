@@ -1,0 +1,22 @@
+{
+  "name": "quant-ai",
+  "description": "量化投研 / 护城河分析项目（my-quant-ai 等）",
+  "skills": [
+    "moat-analysis-workflow",
+    "moat-level1-analyzer",
+    "moat-level2-analyzer",
+    "westock-data",
+    "financial-editor",
+    "investment-masters",
+    "scheduled-task-orchestrator",
+    "sync-skills-to-tools",
+    "stock-analyzer"
+  ],
+  "agents": [
+    "moat-analysis-workflow.md",
+    "moat-analysis-workflow/",
+    "moat-level1-analyzer.md",
+    "moat-level2-analyzer.md",
+    "定时任务编排小助手.md"
+  ]
+}

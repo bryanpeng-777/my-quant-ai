@@ -1,0 +1,5 @@
+{
+  "name": "full",
+  "description": "全量同步（与现有行为一致）",
+  "sync_mode": "all"
+}
