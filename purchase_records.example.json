@@ -15,7 +15,8 @@
     // 同一只股票可以有多次买入，每次买入独立计算止损
     //
     // 财报字段：写入 earnings_history（按时间追加，旧→新）。新季度来时在数组末尾多加一条，保留旧数据便于对比。
-    // 博格买入欲望始终取最新一期。仍兼容旧扁平字段（无 earnings_history 时自动视为单期）。
+    // bogle_buying_desire_*：百分数点位（如 27.83=27.83%）。最新一期每日流水线重算写回；历史期冻结不再改。
+    // 仍兼容旧扁平字段（无 earnings_history 时自动视为单期）。
     {
       "symbol": "AAPL",
       "purchase_price": 150.50,
@@ -26,15 +27,18 @@
           "earnings_vwap": 220,
           "dividend_yield": 0.5,
           "eps_growth_GAAP": 8.0,
-          "eps_growth_Non_GAAP": 10.0
+          "eps_growth_Non_GAAP": 10.0,
+          "bogle_buying_desire_GAAP": 12.5,
+          "bogle_buying_desire_Non_GAAP": 14.5
         },
         {
-          // 下一季财报：横向追加一条即可
+          // 下一季财报：横向追加一条即可；上一季博格值已冻结
           "earnings_update_date": "2026-05-01",
           "earnings_vwap": 235,
           "dividend_yield": 0.48,
           "eps_growth_GAAP": 6.5,
           "eps_growth_Non_GAAP": 9.2
+          // 最新一期博格可由流水线每日写入
         }
       ]
     },

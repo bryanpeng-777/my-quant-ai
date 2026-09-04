@@ -16,8 +16,12 @@ on:
       - 'purchase_records.json'
       - 'stock_utils.py'
 
+permissions:
+  contents: write
+
 jobs:
   portfolio_pnl:
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -38,3 +42,15 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_RECEIVER: ${{ secrets.EMAIL_RECEIVER }}
         run: python portfolio_pnl.py
+
+      - name: Persist latest bogle desires
+        run: |
+          if git diff --quiet -- purchase_records.json; then
+            echo "No bogle desire updates to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add purchase_records.json
+          git commit -m "data: 同步最新一期博格买入欲望 [skip ci]"
+          git push

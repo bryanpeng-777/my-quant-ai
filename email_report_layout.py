@@ -103,6 +103,8 @@ def earnings_history_scroll_row(
             ("股息率", "dividend_yield"),
             ("EPS增长(GAAP)", "eps_growth_GAAP"),
             ("EPS增长(Non-GAAP)", "eps_growth_Non_GAAP"),
+            ("博格欲望(GAAP)", "bogle_buying_desire_GAAP"),
+            ("博格欲望(Non-GAAP)", "bogle_buying_desire_Non_GAAP"),
         ]
 
     head_cells = [f'<th style="{_HTML_EARNINGS_TH_METRIC}">指标</th>']

@@ -7,9 +7,10 @@
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
 逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏。
 财报字段推荐写入 earnings_history 数组（每季一条，新季度追加，旧数据保留对比）；
-每条含 earnings_update_date、earnings_vwap、dividend_yield、eps_growth_GAAP、eps_growth_Non_GAAP。
-仍兼容旧版扁平字段（自动视为单期历史）。博格买入欲望取最新一期计算：
-(15-市盈率TTM)/100+股息率+eps_growth/100（市盈率 TTM 优先腾讯行情；失败时回退 yfinance）。
+每条含 earnings_update_date、earnings_vwap、dividend_yield、eps_growth_GAAP、eps_growth_Non_GAAP，
+以及可选 bogle_buying_desire_GAAP / bogle_buying_desire_Non_GAAP（百分数点位，如 27.83 表示 27.83%）。
+最新一期博格欲望每日按现价市盈率重算并写回文件；历史期冻结不再更新（新增财报前最后一天的值即留档）。
+仍兼容旧版扁平字段（自动视为单期历史）。
 VOO 等指数 ETF 不适用上述基本面指标，报告不计算、不展示财报日 VWAP / EPS 增长 / 博格买入欲望。
 """
 import json
@@ -36,7 +37,7 @@ from mother_assets_valuation import (
 from stock_utils import (
     MARKET_US,
     MARKET_HK,
-    build_bogle_buying_desire_breakdown,
+    compute_bogle_buying_desire,
     detect_market,
     get_bogle_fundamentals,
     get_current_stock_price,
@@ -115,8 +116,11 @@ _EARNINGS_FLAT_FIELDS = (
     "dividend_yield",
     "eps_growth_GAAP",
     "eps_growth_Non_GAAP",
+    "bogle_buying_desire_GAAP",
+    "bogle_buying_desire_Non_GAAP",
 )
 _EARNINGS_UPDATE_DATE_PLACEHOLDERS = frozenset({"", "待填写", "TBD", "-"})
+_BOGLE_FIELDS = ("bogle_buying_desire_GAAP", "bogle_buying_desire_Non_GAAP")
 
 
 def _parse_optional_float(
@@ -135,12 +139,35 @@ def _parse_optional_float(
         return 0.0
 
 
+def _parse_optional_nullable_float(
+    source: dict, field: str, *, symbol: str = "?"
+) -> float | None:
+    """optional 可空数值；字段缺失/空为 None（不默认 0）。"""
+    if field not in source:
+        return None
+    raw = source.get(field)
+    if raw is None or (isinstance(raw, str) and not str(raw).strip()):
+        return None
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        print(f"[{datetime.now()}] ⚠️  {symbol} {field} 无效，按未填写处理")
+        return None
+
+
 def _parse_record_optional_float(record: dict, field: str) -> float:
     """逐笔 optional 数值字段，未配置或无效时为 0。"""
     return _parse_optional_float(record, field, symbol=str(record.get("symbol", "?")))
 
 
 def _fmt_pct(value: float) -> str:
+    return f"{value:.2f}%"
+
+
+def _fmt_bogle_pct(value: float | None) -> str:
+    """博格欲望展示：百分数点位；未填写为 —。"""
+    if value is None:
+        return "—"
     return f"{value:.2f}%"
 
 
@@ -194,10 +221,12 @@ def _load_earnings_history(record: dict) -> list[dict]:
     """
     读取逐笔财报历史（旧→新）。
     优先 earnings_history 数组；否则把旧扁平字段合成单期。
+    每项含 _source 指向原始 dict，便于回写最新一期博格欲望。
     """
     symbol = str(record.get("symbol", "?"))
     raw_history = record.get("earnings_history")
     entries: list[dict] = []
+    synthesized = False
 
     if isinstance(raw_history, list):
         for item in raw_history:
@@ -209,7 +238,8 @@ def _load_earnings_history(record: dict) -> list[dict]:
                 )
 
     if not entries and any(k in record for k in _EARNINGS_FLAT_FIELDS):
-        entries.append({k: record.get(k) for k in _EARNINGS_FLAT_FIELDS})
+        entries.append({k: record.get(k) for k in _EARNINGS_FLAT_FIELDS if k in record})
+        synthesized = True
 
     normalized = []
     for item in entries:
@@ -231,13 +261,29 @@ def _load_earnings_history(record: dict) -> list[dict]:
                 "eps_growth_Non_GAAP": _parse_optional_float(
                     item, "eps_growth_Non_GAAP", symbol=symbol
                 ),
+                "bogle_buying_desire_GAAP": _parse_optional_nullable_float(
+                    item, "bogle_buying_desire_GAAP", symbol=symbol
+                ),
+                "bogle_buying_desire_Non_GAAP": _parse_optional_nullable_float(
+                    item, "bogle_buying_desire_Non_GAAP", symbol=symbol
+                ),
+                "_source": item,
             }
         )
 
     # 按日期升序；同日期保持文件中的相对顺序（稳定排序）
     indexed = list(enumerate(normalized))
-    indexed.sort(key=lambda pair: (_earnings_date_sort_key(pair[1]["earnings_update_date"]), pair[0]))
-    return [item for _, item in indexed]
+    indexed.sort(
+        key=lambda pair: (
+            _earnings_date_sort_key(pair[1]["earnings_update_date"]),
+            pair[0],
+        )
+    )
+    ordered = [item for _, item in indexed]
+    if synthesized and ordered:
+        # 扁平记录首次合成：挂到 record，便于后续持久化
+        record["earnings_history"] = [ordered[0]["_source"]]
+    return ordered
 
 
 def _latest_earnings_entry(history: list[dict]) -> dict:
@@ -250,7 +296,66 @@ def _latest_earnings_entry(history: list[dict]) -> dict:
         "dividend_yield": 0.0,
         "eps_growth_GAAP": 0.0,
         "eps_growth_Non_GAAP": 0.0,
+        "bogle_buying_desire_GAAP": None,
+        "bogle_buying_desire_Non_GAAP": None,
+        "_source": None,
     }
+
+
+def _bogle_pct_points(desire_decimal: float | None) -> float | None:
+    """公式返回小数 → 百分数点位（如 0.2783 → 27.83）。"""
+    if desire_decimal is None:
+        return None
+    return round(desire_decimal * 100.0, 2)
+
+
+def _refresh_latest_bogle_desires(
+    history: list[dict],
+    *,
+    symbol: str,
+    market: str,
+    current_price: float,
+) -> bool:
+    """
+    仅重算并回写最新一期博格欲望；历史期不动。
+    返回是否改写了原始 JSON 对象（需持久化）。
+    """
+    if not history:
+        return False
+    latest = history[-1]
+    fundamentals = get_bogle_fundamentals(
+        symbol, market, current_price=current_price
+    )
+    pe_ttm = fundamentals.get("pe_ttm")
+    dividend_decimal = float(latest["dividend_yield"]) / 100.0
+    gaap_pts = _bogle_pct_points(
+        compute_bogle_buying_desire(
+            pe_ttm, dividend_decimal, float(latest["eps_growth_GAAP"])
+        )
+    )
+    non_gaap_pts = _bogle_pct_points(
+        compute_bogle_buying_desire(
+            pe_ttm, dividend_decimal, float(latest["eps_growth_Non_GAAP"])
+        )
+    )
+    latest["bogle_buying_desire_GAAP"] = gaap_pts
+    latest["bogle_buying_desire_Non_GAAP"] = non_gaap_pts
+
+    source = latest.get("_source")
+    if not isinstance(source, dict):
+        return False
+    changed = False
+    for field, value in (
+        ("bogle_buying_desire_GAAP", gaap_pts),
+        ("bogle_buying_desire_Non_GAAP", non_gaap_pts),
+    ):
+        if value is None:
+            # 无法计算时不清除已有快照
+            continue
+        if source.get(field) != value:
+            source[field] = value
+            changed = True
+    return changed
 
 
 def _format_earnings_history_for_row(
@@ -267,6 +372,12 @@ def _format_earnings_history_for_row(
                 "dividend_yield": _fmt_pct(entry["dividend_yield"]),
                 "eps_growth_GAAP": _fmt_pct(entry["eps_growth_GAAP"]),
                 "eps_growth_Non_GAAP": _fmt_pct(entry["eps_growth_Non_GAAP"]),
+                "bogle_buying_desire_GAAP": _fmt_bogle_pct(
+                    entry.get("bogle_buying_desire_GAAP")
+                ),
+                "bogle_buying_desire_Non_GAAP": _fmt_bogle_pct(
+                    entry.get("bogle_buying_desire_Non_GAAP")
+                ),
                 "is_latest": idx == len(history),
             }
         )
@@ -287,6 +398,8 @@ def _append_earnings_history_plain_table(lines: list, r: dict) -> None:
             ("股息率", "dividend_yield"),
             ("EPS增长(GAAP)", "eps_growth_GAAP"),
             ("EPS增长(Non-GAAP)", "eps_growth_Non_GAAP"),
+            ("博格欲望(GAAP)", "bogle_buying_desire_GAAP"),
+            ("博格欲望(Non-GAAP)", "bogle_buying_desire_Non_GAAP"),
         ]
 
     headers = []
@@ -297,7 +410,7 @@ def _append_earnings_history_plain_table(lines: list, r: dict) -> None:
     col_w = max(12, max((len(x) for x in headers), default=12))
     label_w = max(len(m[0]) for m in metric_specs)
 
-    lines.append("  财报历史（旧→新，*最新；列=季度）")
+    lines.append("  财报历史（旧→新，*最新；列=季度；博格最新日更/历史冻结）")
     header_line = f"  {'指标'.ljust(label_w)}" + "".join(
         f"  {hdr.rjust(col_w)}" for hdr in headers
     )
@@ -310,27 +423,27 @@ def _append_earnings_history_plain_table(lines: list, r: dict) -> None:
 
 
 def _append_position_fundamental_plain_lines(lines: list, r: dict) -> None:
-    """逐笔基本面行（纯文本）；指数 ETF 等跳过部分指标。"""
+    """逐笔基本面行（纯文本）；指数 ETF 等跳过部分指标。博格欲望在季度表内展示。"""
     history_rows = r.get("earnings_history_rows") or []
     if history_rows:
         _append_earnings_history_plain_table(lines, r)
-    else:
-        lines.append(f"  财报更新日期 {r['earnings_update_date']}")
-        if r.get("show_fundamentals", True):
-            lines.append(f"  财报日VWAP {r['earnings_vwap']}")
-            lines.append(f"  EPS增长(GAAP)     {r['eps_growth_GAAP']}")
-            lines.append(f"  EPS增长(Non-GAAP) {r['eps_growth_Non_GAAP']}")
-        lines.append(f"  股息率     {r['dividend_yield']}")
+        return
 
+    lines.append(f"  财报更新日期 {r['earnings_update_date']}")
     if r.get("show_fundamentals", True):
-        lines.append(f"  博格买入欲望(GAAP)     {r['bogle_buying_desire_GAAP']}")
-        lines.append(f"                       {r['bogle_buying_desire_detail_GAAP']}")
-        lines.append(f"  博格买入欲望(Non-GAAP) {r['bogle_buying_desire_Non_GAAP']}")
-        lines.append(f"                       {r['bogle_buying_desire_detail_Non_GAAP']}")
+        lines.append(f"  财报日VWAP {r['earnings_vwap']}")
+        lines.append(f"  EPS增长(GAAP)     {r['eps_growth_GAAP']}")
+        lines.append(f"  EPS增长(Non-GAAP) {r['eps_growth_Non_GAAP']}")
+    lines.append(f"  股息率     {r['dividend_yield']}")
+    if r.get("show_fundamentals", True):
+        lines.append(f"  博格买入欲望(GAAP)     {r.get('bogle_buying_desire_GAAP', '—')}")
+        lines.append(
+            f"  博格买入欲望(Non-GAAP) {r.get('bogle_buying_desire_Non_GAAP', '—')}"
+        )
 
 
 def _position_fundamental_kv_html(r: dict) -> str:
-    """逐笔基本面键值对（HTML）；多期财报用可横滑「指标×季度」表。"""
+    """逐笔基本面键值对（HTML）；季度表含博格欲望，省略计算公式。"""
     history_rows = r.get("earnings_history_rows") or []
     parts: list[str] = []
     show_fundamentals = r.get("show_fundamentals", True)
@@ -340,28 +453,32 @@ def _position_fundamental_kv_html(r: dict) -> str:
             earnings_history_scroll_row(
                 history_rows,
                 show_fundamentals=show_fundamentals,
-                caption="财报历史（旧→新，*最新；可横滑，博格按最新一期）",
+                caption="财报历史（旧→新，*最新可横滑；博格最新日更，历史冻结）",
             )
         )
-    else:
-        parts.append(kv_row("财报更新日期", r["earnings_update_date"]))
-        if show_fundamentals:
-            parts.extend(
-                [
-                    kv_row("财报日VWAP", r["earnings_vwap"]),
-                    kv_row("EPS增长(GAAP)", r["eps_growth_GAAP"]),
-                    kv_row("EPS增长(Non-GAAP)", r["eps_growth_Non_GAAP"]),
-                ]
-            )
-        parts.append(kv_row("股息率", r["dividend_yield"]))
+        return "".join(parts)
 
+    parts.append(kv_row("财报更新日期", r["earnings_update_date"]))
     if show_fundamentals:
         parts.extend(
             [
-                kv_row("博格买入欲望(GAAP)", r["bogle_buying_desire_GAAP"]),
-                kv_row("　计算过程(GAAP)", r["bogle_buying_desire_detail_GAAP"]),
-                kv_row("博格买入欲望(Non-GAAP)", r["bogle_buying_desire_Non_GAAP"]),
-                kv_row("　计算过程(Non-GAAP)", r["bogle_buying_desire_detail_Non_GAAP"]),
+                kv_row("财报日VWAP", r["earnings_vwap"]),
+                kv_row("EPS增长(GAAP)", r["eps_growth_GAAP"]),
+                kv_row("EPS增长(Non-GAAP)", r["eps_growth_Non_GAAP"]),
+            ]
+        )
+    parts.append(kv_row("股息率", r["dividend_yield"]))
+    if show_fundamentals:
+        parts.extend(
+            [
+                kv_row(
+                    "博格买入欲望(GAAP)",
+                    r.get("bogle_buying_desire_GAAP", "—"),
+                ),
+                kv_row(
+                    "博格买入欲望(Non-GAAP)",
+                    r.get("bogle_buying_desire_Non_GAAP", "—"),
+                ),
             ]
         )
     return "".join(parts)
@@ -372,45 +489,66 @@ def _empty_market_dict():
 
 
 def load_portfolio_source():
-    """返回 (records, total_investment_by_market, current_total_assets_gross)。"""
+    """
+    返回 (
+      records,
+      total_investment_by_market,
+      current_total_assets_gross,
+      full_data | None,
+      source_kind: 'file' | 'env' | None,
+    )。
+    """
     empty = _empty_market_dict()
     env_raw = os.environ.get("PURCHASE_RECORDS_JSON", "").strip()
     if env_raw:
         try:
             data = json.loads(env_raw)
             if not isinstance(data, dict):
-                return [], empty.copy(), empty.copy()
+                return [], empty.copy(), empty.copy(), None, None
             return (
                 data.get("records", []),
                 _parse_total_investment(data),
                 _parse_current_total_assets(data),
+                data,
+                "env",
             )
         except json.JSONDecodeError:
             print(f"[{datetime.now()}] ⚠️  环境变量 PURCHASE_RECORDS_JSON 不是合法 JSON")
-            return [], empty.copy(), empty.copy()
+            return [], empty.copy(), empty.copy(), None, None
         except Exception as e:
             print(f"[{datetime.now()}] ⚠️  解析 PURCHASE_RECORDS_JSON 时出错: {str(e)}")
-            return [], empty.copy(), empty.copy()
+            return [], empty.copy(), empty.copy(), None, None
 
     if not Path(PURCHASE_RECORDS_FILE).exists():
-        return [], empty.copy(), empty.copy()
+        return [], empty.copy(), empty.copy(), None, None
 
     try:
         with open(PURCHASE_RECORDS_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
         if not isinstance(data, dict):
-            return [], empty.copy(), empty.copy()
+            return [], empty.copy(), empty.copy(), None, None
         return (
             data.get("records", []),
             _parse_total_investment(data),
             _parse_current_total_assets(data),
+            data,
+            "file",
         )
     except json.JSONDecodeError:
         print(f"[{datetime.now()}] ⚠️  警告: {PURCHASE_RECORDS_FILE} 文件格式错误")
-        return [], empty.copy(), empty.copy()
+        return [], empty.copy(), empty.copy(), None, None
     except Exception as e:
         print(f"[{datetime.now()}] ⚠️  加载购买记录时出错: {str(e)}")
-        return [], empty.copy(), empty.copy()
+        return [], empty.copy(), empty.copy(), None, None
+
+
+def _persist_purchase_records(full_data: dict) -> None:
+    """将更新后的博格欲望写回 purchase_records.json。"""
+    path = Path(PURCHASE_RECORDS_FILE)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(full_data, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    print(f"[{datetime.now()}] 💾 已写回最新一期博格欲望至 {PURCHASE_RECORDS_FILE}")
 
 
 def _empty_market_totals():
@@ -864,7 +1002,9 @@ def build_notes_block(rows_skip_qty: list, rows_price_fail: list) -> str:
 def run_report():
     ts = datetime.now()
     as_of = ts.date()
-    records, investment_override, assets_gross = load_portfolio_source()
+    records, investment_override, assets_gross, full_data, source_kind = (
+        load_portfolio_source()
+    )
     mother_totals = compute_mother_assets_totals(as_of)
     mother_stock_value, mother_stock_cost = compute_mother_stock_totals(as_of)
     usd_hkd_rate = get_usd_hkd_rate()
@@ -901,6 +1041,7 @@ def run_report():
     rows_ok = []
     rows_skip_qty = []
     rows_price_fail = []
+    bogle_dirty = False
 
     if not records:
         body = (
@@ -951,6 +1092,15 @@ def run_report():
 
         show_fundamentals = _shows_stock_fundamentals(symbol)
         earnings_history = _load_earnings_history(record)
+        if show_fundamentals and earnings_history:
+            if _refresh_latest_bogle_desires(
+                earnings_history,
+                symbol=symbol,
+                market=market,
+                current_price=current_price,
+            ):
+                bogle_dirty = True
+
         latest_earnings = _latest_earnings_entry(earnings_history)
         dividend_pct = float(latest_earnings["dividend_yield"])
 
@@ -967,6 +1117,12 @@ def run_report():
             "dividend_yield": _fmt_pct(dividend_pct),
             "eps_growth_GAAP": _fmt_pct(latest_earnings["eps_growth_GAAP"]),
             "eps_growth_Non_GAAP": _fmt_pct(latest_earnings["eps_growth_Non_GAAP"]),
+            "bogle_buying_desire_GAAP": _fmt_bogle_pct(
+                latest_earnings.get("bogle_buying_desire_GAAP")
+            ),
+            "bogle_buying_desire_Non_GAAP": _fmt_bogle_pct(
+                latest_earnings.get("bogle_buying_desire_Non_GAAP")
+            ),
             "earnings_history_rows": _format_earnings_history_for_row(
                 earnings_history, cur_sym
             ),
@@ -975,40 +1131,18 @@ def run_report():
             "pnl": _fmt_money(cur_sym, pnl, signed=True),
         }
 
-        if show_fundamentals:
-            eps_growth_gaap = float(latest_earnings["eps_growth_GAAP"])
-            eps_growth_non_gaap = float(latest_earnings["eps_growth_Non_GAAP"])
-            fundamentals = get_bogle_fundamentals(
-                symbol, market, current_price=current_price
-            )
-            pe_ttm_source = fundamentals.get("pe_ttm_source", "")
-            dividend_decimal = dividend_pct / 100.0
-            bogle_gaap_result, bogle_gaap_detail = build_bogle_buying_desire_breakdown(
-                fundamentals["pe_ttm"],
-                dividend_decimal,
-                eps_growth_gaap,
-                eps_growth_label="GAAP",
-                pe_ttm_source=pe_ttm_source,
-            )
-            bogle_non_gaap_result, bogle_non_gaap_detail = (
-                build_bogle_buying_desire_breakdown(
-                    fundamentals["pe_ttm"],
-                    dividend_decimal,
-                    eps_growth_non_gaap,
-                    eps_growth_label="Non-GAAP",
-                    pe_ttm_source=pe_ttm_source,
-                )
-            )
-            row.update(
-                {
-                    "bogle_buying_desire_GAAP": bogle_gaap_result,
-                    "bogle_buying_desire_detail_GAAP": bogle_gaap_detail,
-                    "bogle_buying_desire_Non_GAAP": bogle_non_gaap_result,
-                    "bogle_buying_desire_detail_Non_GAAP": bogle_non_gaap_detail,
-                }
-            )
-
         rows_ok.append(row)
+
+    if bogle_dirty and source_kind == "file" and full_data is not None:
+        try:
+            _persist_purchase_records(full_data)
+        except Exception as e:
+            print(f"[{datetime.now()}] ⚠️  写回博格欲望失败: {e}")
+    elif bogle_dirty and source_kind == "env":
+        print(
+            f"[{datetime.now()}] ℹ️  数据来自 PURCHASE_RECORDS_JSON，"
+            "最新博格欲望仅本次报告生效，未持久化"
+        )
 
     notes = build_notes_block(rows_skip_qty, rows_price_fail)
     plain = build_plain_report(

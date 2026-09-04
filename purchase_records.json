@@ -70,7 +70,9 @@
           "earnings_vwap": 414,
           "dividend_yield": 2.1,
           "eps_growth_GAAP": 44.59,
-          "eps_growth_Non_GAAP": 32.14
+          "eps_growth_Non_GAAP": 32.14,
+          "bogle_buying_desire_GAAP": 27.83,
+          "bogle_buying_desire_Non_GAAP": 15.38
         },
         {
           "earnings_update_date": "2026-09-02",
