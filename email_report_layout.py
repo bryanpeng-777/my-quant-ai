@@ -54,6 +54,92 @@ def market_card(title: str, rows_html: str) -> str:
     )
 
 
+# 财报历史横滑表（指标行 × 季度列）；嵌在 kv 卡片 colspan 行内
+_HTML_EARNINGS_SCROLL = (
+    "overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;"
+    "margin:4px 0 8px;border:1px solid #e8e8e8;border-radius:6px;"
+)
+_HTML_EARNINGS_TABLE = (
+    "border-collapse:collapse;font-size:13px;"
+    "font-variant-numeric:tabular-nums;white-space:nowrap;"
+)
+_HTML_EARNINGS_TH = (
+    "padding:8px 10px;text-align:right;background:#f0f2f5;color:#333;"
+    "font-weight:600;border-bottom:1px solid #e0e0e0;min-width:96px;"
+)
+_HTML_EARNINGS_TH_METRIC = (
+    "padding:8px 10px;text-align:left;background:#f0f2f5;color:#666;"
+    "font-weight:600;border-bottom:1px solid #e0e0e0;min-width:88px;"
+    "position:sticky;left:0;z-index:1;"
+)
+_HTML_EARNINGS_TD_METRIC = (
+    "padding:7px 10px;text-align:left;color:#666;background:#fafbfc;"
+    "border-bottom:1px solid #eee;position:sticky;left:0;z-index:1;"
+)
+_HTML_EARNINGS_TD = (
+    "padding:7px 10px;text-align:right;border-bottom:1px solid #eee;"
+)
+_HTML_EARNINGS_TD_LATEST = _HTML_EARNINGS_TD + "font-weight:600;color:#0a5;background:#f6fff8;"
+_HTML_EARNINGS_TH_LATEST = _HTML_EARNINGS_TH + "color:#0a5;background:#e8f7ee;"
+
+
+def earnings_history_scroll_row(
+    history_rows: list,
+    *,
+    show_fundamentals: bool = True,
+    caption: str = "财报历史（旧→新，可横滑）",
+) -> str:
+    """
+    返回嵌在 market_card kv 表内的一行：可横向滚动的「指标×季度」表。
+    history_rows 项需含 earnings_update_date、is_latest，以及股息/VWAP/EPS 展示字段。
+    """
+    if not history_rows:
+        return ""
+
+    metric_specs = [("股息率", "dividend_yield")]
+    if show_fundamentals:
+        metric_specs = [
+            ("财报日VWAP", "earnings_vwap"),
+            ("股息率", "dividend_yield"),
+            ("EPS增长(GAAP)", "eps_growth_GAAP"),
+            ("EPS增长(Non-GAAP)", "eps_growth_Non_GAAP"),
+        ]
+
+    head_cells = [f'<th style="{_HTML_EARNINGS_TH_METRIC}">指标</th>']
+    for hrow in history_rows:
+        mark = " *" if hrow.get("is_latest") else ""
+        label = f"{hrow.get('earnings_update_date', '—')}{mark}"
+        th_style = (
+            _HTML_EARNINGS_TH_LATEST if hrow.get("is_latest") else _HTML_EARNINGS_TH
+        )
+        head_cells.append(f'<th style="{th_style}">{h(label)}</th>')
+
+    body_rows = []
+    for metric_label, field in metric_specs:
+        cells = [f'<td style="{_HTML_EARNINGS_TD_METRIC}">{h(metric_label)}</td>']
+        for hrow in history_rows:
+            td_style = (
+                _HTML_EARNINGS_TD_LATEST
+                if hrow.get("is_latest")
+                else _HTML_EARNINGS_TD
+            )
+            cells.append(f'<td style="{td_style}">{h(hrow.get(field, "—"))}</td>')
+        body_rows.append(f"<tr>{''.join(cells)}</tr>")
+
+    table = (
+        f'<table role="presentation" cellpadding="0" cellspacing="0" '
+        f'style="{_HTML_EARNINGS_TABLE}">'
+        f"<thead><tr>{''.join(head_cells)}</tr></thead>"
+        f"<tbody>{''.join(body_rows)}</tbody></table>"
+    )
+    return (
+        f'<tr><td colspan="2" style="padding:4px 0 0;">'
+        f'<div style="font-size:12px;color:#666;margin:0 0 6px;">{h(caption)}</div>'
+        f'<div style="{_HTML_EARNINGS_SCROLL}">{table}</div>'
+        f"</td></tr>"
+    )
+
+
 def section_heading(title: str) -> str:
     return f'<h2 style="{HTML_H2}">{h(title)}</h2>'
 

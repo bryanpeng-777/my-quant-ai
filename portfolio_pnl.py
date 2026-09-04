@@ -20,6 +20,7 @@ from pathlib import Path
 from email_report_layout import (
     HTML_EMPTY,
     build_email_page,
+    earnings_history_scroll_row,
     h,
     kv_row,
     market_card,
@@ -272,26 +273,47 @@ def _format_earnings_history_for_row(
     return rows
 
 
+def _append_earnings_history_plain_table(lines: list, r: dict) -> None:
+    """纯文本：指标为行、季度为列（等宽对齐，便于对比）。"""
+    history_rows = r.get("earnings_history_rows") or []
+    if not history_rows:
+        return
+
+    show_fundamentals = r.get("show_fundamentals", True)
+    metric_specs = [("股息率", "dividend_yield")]
+    if show_fundamentals:
+        metric_specs = [
+            ("财报日VWAP", "earnings_vwap"),
+            ("股息率", "dividend_yield"),
+            ("EPS增长(GAAP)", "eps_growth_GAAP"),
+            ("EPS增长(Non-GAAP)", "eps_growth_Non_GAAP"),
+        ]
+
+    headers = []
+    for hrow in history_rows:
+        mark = "*" if hrow.get("is_latest") else ""
+        headers.append(f"{hrow['earnings_update_date']}{mark}")
+
+    col_w = max(12, max((len(x) for x in headers), default=12))
+    label_w = max(len(m[0]) for m in metric_specs)
+
+    lines.append("  财报历史（旧→新，*最新；列=季度）")
+    header_line = f"  {'指标'.ljust(label_w)}" + "".join(
+        f"  {hdr.rjust(col_w)}" for hdr in headers
+    )
+    lines.append(header_line)
+    for metric_label, field in metric_specs:
+        cells = "".join(
+            f"  {str(hrow.get(field, '—')).rjust(col_w)}" for hrow in history_rows
+        )
+        lines.append(f"  {metric_label.ljust(label_w)}{cells}")
+
+
 def _append_position_fundamental_plain_lines(lines: list, r: dict) -> None:
     """逐笔基本面行（纯文本）；指数 ETF 等跳过部分指标。"""
     history_rows = r.get("earnings_history_rows") or []
-    if len(history_rows) > 1:
-        lines.append("  财报历史（旧→新，*为最新）")
-        for hrow in history_rows:
-            mark = "*" if hrow.get("is_latest") else " "
-            if r.get("show_fundamentals", True):
-                lines.append(
-                    f"  {mark}[{hrow['idx']}] {hrow['earnings_update_date']}"
-                    f"  VWAP {hrow['earnings_vwap']}"
-                    f"  股息 {hrow['dividend_yield']}"
-                    f"  EPS(G) {hrow['eps_growth_GAAP']}"
-                    f"  EPS(NG) {hrow['eps_growth_Non_GAAP']}"
-                )
-            else:
-                lines.append(
-                    f"  {mark}[{hrow['idx']}] {hrow['earnings_update_date']}"
-                    f"  股息 {hrow['dividend_yield']}"
-                )
+    if history_rows:
+        _append_earnings_history_plain_table(lines, r)
     else:
         lines.append(f"  财报更新日期 {r['earnings_update_date']}")
         if r.get("show_fundamentals", True):
@@ -308,26 +330,22 @@ def _append_position_fundamental_plain_lines(lines: list, r: dict) -> None:
 
 
 def _position_fundamental_kv_html(r: dict) -> str:
-    """逐笔基本面键值对（HTML）；指数 ETF 等跳过部分指标。"""
+    """逐笔基本面键值对（HTML）；多期财报用可横滑「指标×季度」表。"""
     history_rows = r.get("earnings_history_rows") or []
     parts: list[str] = []
+    show_fundamentals = r.get("show_fundamentals", True)
 
-    if len(history_rows) > 1:
-        parts.append(kv_row("财报历史", "旧→新（*最新；博格按最新一期）"))
-        for hrow in history_rows:
-            mark = "*" if hrow.get("is_latest") else ""
-            label = f"{mark}[{hrow['idx']}] {hrow['earnings_update_date']}"
-            if r.get("show_fundamentals", True):
-                value = (
-                    f"VWAP {hrow['earnings_vwap']} · 股息 {hrow['dividend_yield']} · "
-                    f"EPS(G) {hrow['eps_growth_GAAP']} · EPS(NG) {hrow['eps_growth_Non_GAAP']}"
-                )
-            else:
-                value = f"股息 {hrow['dividend_yield']}"
-            parts.append(kv_row(label, value))
+    if history_rows:
+        parts.append(
+            earnings_history_scroll_row(
+                history_rows,
+                show_fundamentals=show_fundamentals,
+                caption="财报历史（旧→新，*最新；可横滑，博格按最新一期）",
+            )
+        )
     else:
         parts.append(kv_row("财报更新日期", r["earnings_update_date"]))
-        if r.get("show_fundamentals", True):
+        if show_fundamentals:
             parts.extend(
                 [
                     kv_row("财报日VWAP", r["earnings_vwap"]),
@@ -337,7 +355,7 @@ def _position_fundamental_kv_html(r: dict) -> str:
             )
         parts.append(kv_row("股息率", r["dividend_yield"]))
 
-    if r.get("show_fundamentals", True):
+    if show_fundamentals:
         parts.extend(
             [
                 kv_row("博格买入欲望(GAAP)", r["bogle_buying_desire_GAAP"]),
