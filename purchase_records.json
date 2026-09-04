@@ -18,7 +18,9 @@
           "earnings_vwap": 330,
           "dividend_yield": 0.22,
           "eps_growth_GAAP": 71.05,
-          "eps_growth_Non_GAAP": 23.10
+          "eps_growth_Non_GAAP": 23.1,
+          "bogle_buying_desire_GAAP": 69.09,
+          "bogle_buying_desire_Non_GAAP": 21.14
         }
       ]
     },
@@ -34,7 +36,7 @@
     },
     {
       "symbol": "NVDA",
-      "purchase_price": 206.30,
+      "purchase_price": 206.3,
       "quantity": 13,
       "earnings_history": [
         {
@@ -42,7 +44,9 @@
           "earnings_vwap": 230,
           "dividend_yield": 0.04,
           "eps_growth_GAAP": 21.13,
-          "eps_growth_Non_GAAP": 20.03
+          "eps_growth_Non_GAAP": 20.03,
+          "bogle_buying_desire_GAAP": 7.29,
+          "bogle_buying_desire_Non_GAAP": 6.19
         }
       ]
     },
@@ -56,7 +60,9 @@
           "earnings_vwap": 529.42,
           "dividend_yield": 0,
           "eps_growth_GAAP": 18.43,
-          "eps_growth_Non_GAAP": 4.26
+          "eps_growth_Non_GAAP": 4.26,
+          "bogle_buying_desire_GAAP": 20.65,
+          "bogle_buying_desire_Non_GAAP": 6.48
         }
       ]
     },
@@ -79,7 +85,9 @@
           "earnings_vwap": 492,
           "dividend_yield": 0.45,
           "eps_growth_GAAP": 36.85,
-          "eps_growth_Non_GAAP": 34.55
+          "eps_growth_Non_GAAP": 34.55,
+          "bogle_buying_desire_GAAP": 22.26,
+          "bogle_buying_desire_Non_GAAP": 19.96
         }
       ]
     },
@@ -93,7 +101,9 @@
           "earnings_vwap": 452,
           "dividend_yield": 1.1,
           "eps_growth_GAAP": 0.17,
-          "eps_growth_Non_GAAP": 2.61
+          "eps_growth_Non_GAAP": 2.61,
+          "bogle_buying_desire_GAAP": 0.94,
+          "bogle_buying_desire_Non_GAAP": 3.38
         }
       ]
     },
@@ -107,7 +117,9 @@
           "earnings_vwap": 149,
           "dividend_yield": 1.53,
           "eps_growth_GAAP": 5.01,
-          "eps_growth_Non_GAAP": 5.2
+          "eps_growth_Non_GAAP": 5.2,
+          "bogle_buying_desire_GAAP": 3.76,
+          "bogle_buying_desire_Non_GAAP": 3.95
         }
       ]
     }
