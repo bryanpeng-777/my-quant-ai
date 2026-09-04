@@ -5,7 +5,12 @@
 本轮生意盈亏 = 扣减后当前总市值 − 扣减后生意总投资；
 「投资占比」= 扣减母亲持仓成本后的生意总投资 ÷ 扣减后的当前总资产。
 当前总资产（分市场、分币种）= current_total_assets − 母亲总资产（美元+港币按汇率折算为对应币种）。
-逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏；可选 earnings_update_date（财报更新日期，如 2026-02-05；空字符串占位展示「待填写」）、earnings_vwap、dividend_yield、eps_growth_GAAP、eps_growth_Non_GAAP 手动填写（百分数，未填为 0）；博格买入欲望分别按 GAAP / Non-GAAP 两套 EPS 增长计算：(15-市盈率TTM)/100+股息率+eps_growth/100（市盈率 TTM 优先腾讯行情，与炒股软件一致；失败时回退 yfinance 现价÷trailingEps）。VOO 等指数 ETF 不适用上述基本面指标，报告不计算、不展示财报日 VWAP / EPS 增长 / 博格买入欲望。
+逐笔持仓为账户合计（我的+母亲），仍按买入价与现价计算盈亏。
+财报字段推荐写入 earnings_history 数组（每季一条，新季度追加，旧数据保留对比）；
+每条含 earnings_update_date、earnings_vwap、dividend_yield、eps_growth_GAAP、eps_growth_Non_GAAP。
+仍兼容旧版扁平字段（自动视为单期历史）。博格买入欲望取最新一期计算：
+(15-市盈率TTM)/100+股息率+eps_growth/100（市盈率 TTM 优先腾讯行情；失败时回退 yfinance）。
+VOO 等指数 ETF 不适用上述基本面指标，报告不计算、不展示财报日 VWAP / EPS 增长 / 博格买入欲望。
 """
 import json
 import os
@@ -103,34 +108,46 @@ def _parse_current_total_assets(data: dict) -> dict:
     return {MARKET_US: None, MARKET_HK: None}
 
 
-def _parse_record_optional_float(record: dict, field: str) -> float:
-    """逐笔 optional 数值字段，未配置或无效时为 0。"""
-    raw = record.get(field)
+_EARNINGS_FLAT_FIELDS = (
+    "earnings_update_date",
+    "earnings_vwap",
+    "dividend_yield",
+    "eps_growth_GAAP",
+    "eps_growth_Non_GAAP",
+)
+_EARNINGS_UPDATE_DATE_PLACEHOLDERS = frozenset({"", "待填写", "TBD", "-"})
+
+
+def _parse_optional_float(
+    source: dict, field: str, *, symbol: str = "?", warn: bool = True
+) -> float:
+    """optional 数值字段，未配置或无效时为 0。"""
+    raw = source.get(field)
     if raw is None:
         return 0.0
     try:
         value = float(raw)
         return value if value >= 0 else 0.0
     except (TypeError, ValueError):
-        print(
-            f"[{datetime.now()}] ⚠️  {record.get('symbol', '?')} {field} 无效，按 0 处理"
-        )
+        if warn:
+            print(f"[{datetime.now()}] ⚠️  {symbol} {field} 无效，按 0 处理")
         return 0.0
+
+
+def _parse_record_optional_float(record: dict, field: str) -> float:
+    """逐笔 optional 数值字段，未配置或无效时为 0。"""
+    return _parse_optional_float(record, field, symbol=str(record.get("symbol", "?")))
 
 
 def _fmt_pct(value: float) -> str:
     return f"{value:.2f}%"
 
 
-_EARNINGS_UPDATE_DATE_PLACEHOLDERS = frozenset({"", "待填写", "TBD", "-"})
-
-
-def _parse_record_earnings_update_date(record: dict) -> str:
+def _normalize_earnings_update_date(raw, *, symbol: str = "?") -> str:
     """
-    逐笔 optional 财报更新日期（earnings_update_date）。
-    接受 YYYY-MM-DD 或 YYYY/MM/DD；未配置字段为「—」，空值/待填写为占位「待填写」。
+    财报更新日期展示值。
+    接受 YYYY-MM-DD / YYYY-M-D / YYYY/MM/DD；未配置为「—」，空值/待填写为「待填写」。
     """
-    raw = record.get("earnings_update_date")
     if raw is None:
         return "—"
     text = str(raw).strip()
@@ -139,24 +156,150 @@ def _parse_record_earnings_update_date(record: dict) -> str:
     for sep in ("/", "."):
         text = text.replace(sep, "-")
     try:
-        parsed = date.fromisoformat(text)
-        return parsed.isoformat()
+        return date.fromisoformat(text).isoformat()
     except ValueError:
-        print(
-            f"[{datetime.now()}] ⚠️  {record.get('symbol', '?')} "
-            f"earnings_update_date 格式无效（期望 YYYY-MM-DD）: {raw!r}"
+        pass
+    parts = text.split("-")
+    if len(parts) == 3:
+        try:
+            y, m, d = (int(p) for p in parts)
+            return date(y, m, d).isoformat()
+        except ValueError:
+            pass
+    print(
+        f"[{datetime.now()}] ⚠️  {symbol} "
+        f"earnings_update_date 格式无效（期望 YYYY-MM-DD）: {raw!r}"
+    )
+    return str(raw).strip()
+
+
+def _parse_record_earnings_update_date(record: dict) -> str:
+    """兼容旧接口：从扁平记录读财报更新日期。"""
+    return _normalize_earnings_update_date(
+        record.get("earnings_update_date"),
+        symbol=str(record.get("symbol", "?")),
+    )
+
+
+def _earnings_date_sort_key(display_date: str):
+    """有效 ISO 日期排前面；占位/无效排最后（保持原相对顺序靠后）。"""
+    try:
+        return (0, date.fromisoformat(display_date))
+    except ValueError:
+        return (1, date.min)
+
+
+def _load_earnings_history(record: dict) -> list[dict]:
+    """
+    读取逐笔财报历史（旧→新）。
+    优先 earnings_history 数组；否则把旧扁平字段合成单期。
+    """
+    symbol = str(record.get("symbol", "?"))
+    raw_history = record.get("earnings_history")
+    entries: list[dict] = []
+
+    if isinstance(raw_history, list):
+        for item in raw_history:
+            if isinstance(item, dict):
+                entries.append(item)
+            else:
+                print(
+                    f"[{datetime.now()}] ⚠️  {symbol} earnings_history 含非对象项，已跳过"
+                )
+
+    if not entries and any(k in record for k in _EARNINGS_FLAT_FIELDS):
+        entries.append({k: record.get(k) for k in _EARNINGS_FLAT_FIELDS})
+
+    normalized = []
+    for item in entries:
+        display_date = _normalize_earnings_update_date(
+            item.get("earnings_update_date"), symbol=symbol
         )
-        return str(raw).strip()
+        normalized.append(
+            {
+                "earnings_update_date": display_date,
+                "earnings_vwap": _parse_optional_float(
+                    item, "earnings_vwap", symbol=symbol
+                ),
+                "dividend_yield": _parse_optional_float(
+                    item, "dividend_yield", symbol=symbol
+                ),
+                "eps_growth_GAAP": _parse_optional_float(
+                    item, "eps_growth_GAAP", symbol=symbol
+                ),
+                "eps_growth_Non_GAAP": _parse_optional_float(
+                    item, "eps_growth_Non_GAAP", symbol=symbol
+                ),
+            }
+        )
+
+    # 按日期升序；同日期保持文件中的相对顺序（稳定排序）
+    indexed = list(enumerate(normalized))
+    indexed.sort(key=lambda pair: (_earnings_date_sort_key(pair[1]["earnings_update_date"]), pair[0]))
+    return [item for _, item in indexed]
+
+
+def _latest_earnings_entry(history: list[dict]) -> dict:
+    """最新一期（排序后末项）；无历史时返回空占位。"""
+    if history:
+        return history[-1]
+    return {
+        "earnings_update_date": "—",
+        "earnings_vwap": 0.0,
+        "dividend_yield": 0.0,
+        "eps_growth_GAAP": 0.0,
+        "eps_growth_Non_GAAP": 0.0,
+    }
+
+
+def _format_earnings_history_for_row(
+    history: list[dict], cur_sym: str
+) -> list[dict]:
+    """报告用：多期财报展示行。"""
+    rows = []
+    for idx, entry in enumerate(history, start=1):
+        rows.append(
+            {
+                "idx": idx,
+                "earnings_update_date": entry["earnings_update_date"],
+                "earnings_vwap": _fmt_money(cur_sym, entry["earnings_vwap"]),
+                "dividend_yield": _fmt_pct(entry["dividend_yield"]),
+                "eps_growth_GAAP": _fmt_pct(entry["eps_growth_GAAP"]),
+                "eps_growth_Non_GAAP": _fmt_pct(entry["eps_growth_Non_GAAP"]),
+                "is_latest": idx == len(history),
+            }
+        )
+    return rows
 
 
 def _append_position_fundamental_plain_lines(lines: list, r: dict) -> None:
     """逐笔基本面行（纯文本）；指数 ETF 等跳过部分指标。"""
-    lines.append(f"  财报更新日期 {r['earnings_update_date']}")
-    if r.get("show_fundamentals", True):
-        lines.append(f"  财报日VWAP {r['earnings_vwap']}")
-        lines.append(f"  EPS增长(GAAP)     {r['eps_growth_GAAP']}")
-        lines.append(f"  EPS增长(Non-GAAP) {r['eps_growth_Non_GAAP']}")
-    lines.append(f"  股息率     {r['dividend_yield']}")
+    history_rows = r.get("earnings_history_rows") or []
+    if len(history_rows) > 1:
+        lines.append("  财报历史（旧→新，*为最新）")
+        for hrow in history_rows:
+            mark = "*" if hrow.get("is_latest") else " "
+            if r.get("show_fundamentals", True):
+                lines.append(
+                    f"  {mark}[{hrow['idx']}] {hrow['earnings_update_date']}"
+                    f"  VWAP {hrow['earnings_vwap']}"
+                    f"  股息 {hrow['dividend_yield']}"
+                    f"  EPS(G) {hrow['eps_growth_GAAP']}"
+                    f"  EPS(NG) {hrow['eps_growth_Non_GAAP']}"
+                )
+            else:
+                lines.append(
+                    f"  {mark}[{hrow['idx']}] {hrow['earnings_update_date']}"
+                    f"  股息 {hrow['dividend_yield']}"
+                )
+    else:
+        lines.append(f"  财报更新日期 {r['earnings_update_date']}")
+        if r.get("show_fundamentals", True):
+            lines.append(f"  财报日VWAP {r['earnings_vwap']}")
+            lines.append(f"  EPS增长(GAAP)     {r['eps_growth_GAAP']}")
+            lines.append(f"  EPS增长(Non-GAAP) {r['eps_growth_Non_GAAP']}")
+        lines.append(f"  股息率     {r['dividend_yield']}")
+
     if r.get("show_fundamentals", True):
         lines.append(f"  博格买入欲望(GAAP)     {r['bogle_buying_desire_GAAP']}")
         lines.append(f"                       {r['bogle_buying_desire_detail_GAAP']}")
@@ -166,16 +309,34 @@ def _append_position_fundamental_plain_lines(lines: list, r: dict) -> None:
 
 def _position_fundamental_kv_html(r: dict) -> str:
     """逐笔基本面键值对（HTML）；指数 ETF 等跳过部分指标。"""
-    parts = [kv_row("财报更新日期", r["earnings_update_date"])]
-    if r.get("show_fundamentals", True):
-        parts.extend(
-            [
-                kv_row("财报日VWAP", r["earnings_vwap"]),
-                kv_row("EPS增长(GAAP)", r["eps_growth_GAAP"]),
-                kv_row("EPS增长(Non-GAAP)", r["eps_growth_Non_GAAP"]),
-            ]
-        )
-    parts.append(kv_row("股息率", r["dividend_yield"]))
+    history_rows = r.get("earnings_history_rows") or []
+    parts: list[str] = []
+
+    if len(history_rows) > 1:
+        parts.append(kv_row("财报历史", "旧→新（*最新；博格按最新一期）"))
+        for hrow in history_rows:
+            mark = "*" if hrow.get("is_latest") else ""
+            label = f"{mark}[{hrow['idx']}] {hrow['earnings_update_date']}"
+            if r.get("show_fundamentals", True):
+                value = (
+                    f"VWAP {hrow['earnings_vwap']} · 股息 {hrow['dividend_yield']} · "
+                    f"EPS(G) {hrow['eps_growth_GAAP']} · EPS(NG) {hrow['eps_growth_Non_GAAP']}"
+                )
+            else:
+                value = f"股息 {hrow['dividend_yield']}"
+            parts.append(kv_row(label, value))
+    else:
+        parts.append(kv_row("财报更新日期", r["earnings_update_date"]))
+        if r.get("show_fundamentals", True):
+            parts.extend(
+                [
+                    kv_row("财报日VWAP", r["earnings_vwap"]),
+                    kv_row("EPS增长(GAAP)", r["eps_growth_GAAP"]),
+                    kv_row("EPS增长(Non-GAAP)", r["eps_growth_Non_GAAP"]),
+                ]
+            )
+        parts.append(kv_row("股息率", r["dividend_yield"]))
+
     if r.get("show_fundamentals", True):
         parts.extend(
             [
@@ -771,7 +932,9 @@ def run_report():
         aggregates[market]["total_pnl"] += pnl  # 仅备用；汇总本轮生意盈亏以总市值−生意总投资为准
 
         show_fundamentals = _shows_stock_fundamentals(symbol)
-        dividend_pct = _parse_record_optional_float(record, "dividend_yield")
+        earnings_history = _load_earnings_history(record)
+        latest_earnings = _latest_earnings_entry(earnings_history)
+        dividend_pct = float(latest_earnings["dividend_yield"])
 
         row = {
             "num": i + 1,
@@ -781,18 +944,22 @@ def run_report():
             "qty": f"{quantity:g}",
             "buy": _fmt_money(cur_sym, float(purchase_price)),
             "current": _fmt_money(cur_sym, current_price),
-            "earnings_update_date": _parse_record_earnings_update_date(record),
+            "earnings_update_date": latest_earnings["earnings_update_date"],
+            "earnings_vwap": _fmt_money(cur_sym, latest_earnings["earnings_vwap"]),
             "dividend_yield": _fmt_pct(dividend_pct),
+            "eps_growth_GAAP": _fmt_pct(latest_earnings["eps_growth_GAAP"]),
+            "eps_growth_Non_GAAP": _fmt_pct(latest_earnings["eps_growth_Non_GAAP"]),
+            "earnings_history_rows": _format_earnings_history_for_row(
+                earnings_history, cur_sym
+            ),
             "cost": _fmt_money(cur_sym, cost),
             "value": _fmt_money(cur_sym, value),
             "pnl": _fmt_money(cur_sym, pnl, signed=True),
         }
 
         if show_fundamentals:
-            eps_growth_gaap = _parse_record_optional_float(record, "eps_growth_GAAP")
-            eps_growth_non_gaap = _parse_record_optional_float(
-                record, "eps_growth_Non_GAAP"
-            )
+            eps_growth_gaap = float(latest_earnings["eps_growth_GAAP"])
+            eps_growth_non_gaap = float(latest_earnings["eps_growth_Non_GAAP"])
             fundamentals = get_bogle_fundamentals(
                 symbol, market, current_price=current_price
             )
@@ -816,11 +983,6 @@ def run_report():
             )
             row.update(
                 {
-                    "earnings_vwap": _fmt_money(
-                        cur_sym, _parse_record_optional_float(record, "earnings_vwap")
-                    ),
-                    "eps_growth_GAAP": _fmt_pct(eps_growth_gaap),
-                    "eps_growth_Non_GAAP": _fmt_pct(eps_growth_non_gaap),
                     "bogle_buying_desire_GAAP": bogle_gaap_result,
                     "bogle_buying_desire_detail_GAAP": bogle_gaap_detail,
                     "bogle_buying_desire_Non_GAAP": bogle_non_gaap_result,

@@ -12,67 +12,102 @@
       "symbol": "GOOGL",
       "purchase_price": 308.17,
       "quantity": 40,
-      "earnings_update_date": "2026-7-23",
-      "earnings_vwap": 330,
-      "dividend_yield": 0.22,
-      "eps_growth_GAAP": 71.05,
-      "eps_growth_Non_GAAP": 23.10
+      "earnings_history": [
+        {
+          "earnings_update_date": "2026-07-23",
+          "earnings_vwap": 330,
+          "dividend_yield": 0.22,
+          "eps_growth_GAAP": 71.05,
+          "eps_growth_Non_GAAP": 23.10
+        }
+      ]
     },
     {
       "symbol": "VOO",
       "purchase_price": 618.408,
       "quantity": 10,
-      "earnings_update_date": ""
+      "earnings_history": [
+        {
+          "earnings_update_date": ""
+        }
+      ]
     },
     {
       "symbol": "NVDA",
       "purchase_price": 206.30,
       "quantity": 13,
-      "earnings_update_date": "2026-08-26",
-      "earnings_vwap": 230,
-      "dividend_yield": 0.04,
-      "eps_growth_GAAP": 21.13,
-      "eps_growth_Non_GAAP": 20.03
+      "earnings_history": [
+        {
+          "earnings_update_date": "2026-08-26",
+          "earnings_vwap": 230,
+          "dividend_yield": 0.04,
+          "eps_growth_GAAP": 21.13,
+          "eps_growth_Non_GAAP": 20.03
+        }
+      ]
     },
     {
       "symbol": "BRK-B",
       "purchase_price": 480.138,
       "quantity": 64,
-      "earnings_update_date": "2026-08-10",
-      "earnings_vwap": 529.42,
-      "dividend_yield": 0,
-      "eps_growth_GAAP": 18.43,
-      "eps_growth_Non_GAAP": 4.26
+      "earnings_history": [
+        {
+          "earnings_update_date": "2026-08-10",
+          "earnings_vwap": 529.42,
+          "dividend_yield": 0,
+          "eps_growth_GAAP": 18.43,
+          "eps_growth_Non_GAAP": 4.26
+        }
+      ]
     },
     {
       "symbol": "Dell",
       "purchase_price": 375.133,
       "quantity": 32,
-      "earnings_update_date": "2026-05-29",
-      "earnings_vwap": 414,
-      "dividend_yield": 2.1,
-      "eps_growth_GAAP": 44.59,
-      "eps_growth_Non_GAAP": 32.14
+      "earnings_history": [
+        {
+          "earnings_update_date": "2026-05-29",
+          "earnings_vwap": 414,
+          "dividend_yield": 2.1,
+          "eps_growth_GAAP": 44.59,
+          "eps_growth_Non_GAAP": 32.14
+        },
+        {
+          "earnings_update_date": "2026-09-02",
+          "earnings_vwap": 492,
+          "dividend_yield": 0.45,
+          "eps_growth_GAAP": 36.85,
+          "eps_growth_Non_GAAP": 34.55
+        }
+      ]
     },
     {
       "symbol": "0700",
       "purchase_price": 468.36,
       "quantity": 100,
-      "earnings_update_date": "2026-08-12",
-      "earnings_vwap": 452,
-      "dividend_yield": 1.1,
-      "eps_growth_GAAP": 0.17,
-      "eps_growth_Non_GAAP": 2.61
+      "earnings_history": [
+        {
+          "earnings_update_date": "2026-08-12",
+          "earnings_vwap": 452,
+          "dividend_yield": 1.1,
+          "eps_growth_GAAP": 0.17,
+          "eps_growth_Non_GAAP": 2.61
+        }
+      ]
     },
     {
       "symbol": "09992",
       "purchase_price": 164.5,
       "quantity": 200,
-      "earnings_update_date": "2026-08-20",
-      "earnings_vwap": 149,
-      "dividend_yield": 1.53,
-      "eps_growth_GAAP": 5.01,
-      "eps_growth_Non_GAAP": 5.2
+      "earnings_history": [
+        {
+          "earnings_update_date": "2026-08-20",
+          "earnings_vwap": 149,
+          "dividend_yield": 1.53,
+          "eps_growth_GAAP": 5.01,
+          "eps_growth_Non_GAAP": 5.2
+        }
+      ]
     }
   ]
 }

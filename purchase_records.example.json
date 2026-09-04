@@ -13,27 +13,60 @@
     // 美股示例：股票代码为字母组合（如 AAPL, GOOGL, TSLA）
     // VOO 等指数 ETF：仅需 symbol / purchase_price / quantity，无需 earnings_vwap、eps_growth、博格相关字段
     // 同一只股票可以有多次买入，每次买入独立计算止损
+    //
+    // 财报字段：写入 earnings_history（按时间追加，旧→新）。新季度来时在数组末尾多加一条，保留旧数据便于对比。
+    // 博格买入欲望始终取最新一期。仍兼容旧扁平字段（无 earnings_history 时自动视为单期）。
     {
-      "symbol": "AAPL",              // 股票代码（美股：字母组合）
-      "purchase_price": 150.50,      // 购买价格（美元）
-      "quantity": 100,               // 购买数量（可选，用于计算盈亏）
-      "earnings_update_date": "",          // 可选：最新一期财报更新日期（YYYY-MM-DD）；空字符串为占位，报告展示「待填写」
-      "earnings_vwap": 0,            // 可选：财报日 VWAP，未填视为 0
-      "dividend_yield": 0,           // 可选：股息率（百分数，如 0.8 表示 0.8%），未填视为 0
-      "eps_growth_GAAP": 0,          // 可选：EPS 增长 GAAP（百分数，如 5 表示 5%），未填视为 0
-      "eps_growth_Non_GAAP": 0       // 可选：EPS 增长 Non-GAAP（百分数），未填视为 0
+      "symbol": "AAPL",
+      "purchase_price": 150.50,
+      "quantity": 100,
+      "earnings_history": [
+        {
+          "earnings_update_date": "2026-01-30",
+          "earnings_vwap": 220,
+          "dividend_yield": 0.5,
+          "eps_growth_GAAP": 8.0,
+          "eps_growth_Non_GAAP": 10.0
+        },
+        {
+          // 下一季财报：横向追加一条即可
+          "earnings_update_date": "2026-05-01",
+          "earnings_vwap": 235,
+          "dividend_yield": 0.48,
+          "eps_growth_GAAP": 6.5,
+          "eps_growth_Non_GAAP": 9.2
+        }
+      ]
     },
     // 同一只股票的另一次买入（价格不同，止损点也不同）
     {
       "symbol": "AAPL",
       "purchase_price": 145.00,
-      "quantity": 50
+      "quantity": 50,
+      "earnings_history": [
+        {
+          "earnings_update_date": "",
+          "earnings_vwap": 0,
+          "dividend_yield": 0,
+          "eps_growth_GAAP": 0,
+          "eps_growth_Non_GAAP": 0
+        }
+      ]
     },
     // 港股示例：股票代码为4位纯数字（如 0700, 9988, 3690）
     {
-      "symbol": "0700",              // 股票代码（港股：4位数字）
-      "purchase_price": 350.00,      // 购买价格（港币）
-      "quantity": 200
+      "symbol": "0700",
+      "purchase_price": 350.00,
+      "quantity": 200,
+      "earnings_history": [
+        {
+          "earnings_update_date": "2026-08-12",
+          "earnings_vwap": 452,
+          "dividend_yield": 1.1,
+          "eps_growth_GAAP": 0.17,
+          "eps_growth_Non_GAAP": 2.61
+        }
+      ]
     }
   ]
 }
