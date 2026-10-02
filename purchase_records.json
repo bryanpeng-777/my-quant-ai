@@ -122,6 +122,20 @@
           "bogle_buying_desire_Non_GAAP": 4.6
         }
       ]
+    },
+    {
+      "symbol": "SKHY",
+      "purchase_price": 119,
+      "quantity": 30,
+      "earnings_history": [
+        {
+          "earnings_update_date": "2026-07-27",
+          "earnings_vwap": 130,
+          "dividend_yield": 0,
+          "eps_growth_GAAP": 106.9,
+          "eps_growth_Non_GAAP": 49.28
+        }
+      ]
     }
   ]
 }
