@@ -1,7 +1,7 @@
 {
   "cash_balances": {
     "US": 11243.48,
-    "HK": 12872.62
+    "HK": 49284.41
   },
   "dividend_income": {
     "US": 0,
@@ -22,11 +22,6 @@
       "symbol": "0700",
       "quantity": 100,
       "purchase_price": 490
-    },
-    {
-      "symbol": "01919",
-      "quantity": 2000,
-      "purchase_price": 17.55
     }
   ]
 }
