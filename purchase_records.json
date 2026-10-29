@@ -21,6 +21,13 @@
           "eps_growth_Non_GAAP": 23.1,
           "bogle_buying_desire_GAAP": 71.32,
           "bogle_buying_desire_Non_GAAP": 23.37
+        },
+        {
+          "earnings_update_date": "2026-10-29",
+          "earnings_vwap": 285,
+          "dividend_yield": 0.3,
+          "eps_growth_GAAP": -3.77,
+          "eps_growth_Non_GAAP": 1.39
         }
       ]
     },
@@ -136,6 +143,13 @@
           "eps_growth_Non_GAAP": 49.28,
           "bogle_buying_desire_GAAP": 110.84,
           "bogle_buying_desire_Non_GAAP": 53.22
+        },
+        {
+          "earnings_update_date": "2026-10-27",
+          "earnings_vwap": 160,
+          "dividend_yield": 0,
+          "eps_growth_GAAP": 2.11,
+          "eps_growth_Non_GAAP": 2.3
         }
       ]
     }
