@@ -27,7 +27,9 @@
           "earnings_vwap": 285,
           "dividend_yield": 0.3,
           "eps_growth_GAAP": -3.77,
-          "eps_growth_Non_GAAP": 1.39
+          "eps_growth_Non_GAAP": 1.39,
+          "bogle_buying_desire_GAAP": 0.32,
+          "bogle_buying_desire_Non_GAAP": 1.71
         }
       ]
     },
@@ -52,8 +54,8 @@
           "dividend_yield": 0.04,
           "eps_growth_GAAP": 21.13,
           "eps_growth_Non_GAAP": 20.03,
-          "bogle_buying_desire_GAAP": 9.21,
-          "bogle_buying_desire_Non_GAAP": 8.11
+          "bogle_buying_desire_GAAP": 9.15,
+          "bogle_buying_desire_Non_GAAP": 8.05
         }
       ]
     },
@@ -68,8 +70,8 @@
           "dividend_yield": 0,
           "eps_growth_GAAP": 18.43,
           "eps_growth_Non_GAAP": 4.26,
-          "bogle_buying_desire_GAAP": 19.72,
-          "bogle_buying_desire_Non_GAAP": 5.55
+          "bogle_buying_desire_GAAP": 19.76,
+          "bogle_buying_desire_Non_GAAP": 5.59
         }
       ]
     },
@@ -93,8 +95,8 @@
           "dividend_yield": 0.45,
           "eps_growth_GAAP": 36.85,
           "eps_growth_Non_GAAP": 34.55,
-          "bogle_buying_desire_GAAP": 23.6,
-          "bogle_buying_desire_Non_GAAP": 21.3
+          "bogle_buying_desire_GAAP": 23.89,
+          "bogle_buying_desire_Non_GAAP": 21.59
         }
       ]
     },
@@ -149,7 +151,9 @@
           "earnings_vwap": 160,
           "dividend_yield": 0,
           "eps_growth_GAAP": 2.11,
-          "eps_growth_Non_GAAP": 2.3
+          "eps_growth_Non_GAAP": 2.3,
+          "bogle_buying_desire_GAAP": 5.96,
+          "bogle_buying_desire_Non_GAAP": 6.15
         }
       ]
     }
