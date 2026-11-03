@@ -1,0 +1,1852 @@
+{
+  "cached_at": "2026-11-03 01:05:32",
+  "news_days": 7,
+  "stocks": {
+    "usGOOGL": {
+      "name": "谷歌",
+      "news": [
+        {
+          "id": "nesSN20261103082256972283ca",
+          "time": "2026-11-03 08:21:00",
+          "title": "Anthropic，三季度重回经营亏损",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261103082256972283ca&s=b",
+          "src": "科创板日报",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110306185098a66bb1",
+          "time": "2026-11-03 06:12:53",
+          "title": "成交额TOP20",
+          "url": "英特尔续跌9%；迈威尔三日累跌32%，Lumentum重挫19%；Meta、谷歌、甲骨文同日宣布融资，拟合计抢筹近500亿美元",
+          "src": "0",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110306123598a669c1",
+          "time": "2026-11-03 06:11:22",
+          "title": "谷歌Gemini 4 Carbon性价比超Claude",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110306123598a669c1&s=b",
+          "src": "IT时代网",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110306372098a670e3",
+          "time": "2026-11-03 06:04:49",
+          "title": "快讯",
+          "url": "美国证交会（SEC）文件显示，Alphabet(GOOG.O)提交7部分票据发行申请，规模至多60亿欧元。",
+          "src": "0",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110300392998a621ab",
+          "time": "2026-11-03 00:38:00",
+          "title": "Anthropic最新IPO申报文件显示，其算力相关支出承诺接近9000亿美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110300392998a621ab&s=b",
+          "src": "环球市场播报",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261103003438a6e9df36",
+          "time": "2026-11-03 00:31:51",
+          "title": "谷歌2026Q3：暴跌又如何，抄巴菲特的底不过分吧",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261103003438a6e9df36&s=b",
+          "src": "这周财报看了没",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110300281298a61ec5",
+          "time": "2026-11-03 00:13:08",
+          "title": "Alphabet将通过欧元债券发行筹集60亿欧元 付出更高溢价吸引买家",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110300281298a61ec5&s=b",
+          "src": "新浪财经",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102232642a4940a98",
+          "time": "2026-11-02 23:21:38",
+          "title": "谷歌暴跌12.6%，马斯克该担心什么？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102232642a4940a98&s=b",
+          "src": "智能元宇宙",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102224518a6e9c060",
+          "time": "2026-11-02 22:43:06",
+          "title": "财报大跌之后，富国银行小幅下调Alphabet业绩预期",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102224518a6e9c060&s=b",
+          "src": "新浪财经",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261103003932a6e9e050",
+          "time": "2026-11-02 22:39:59",
+          "title": "快讯",
+          "url": "Anthropic：已授予谷歌购买至多100亿美元N类股的期权。",
+          "src": "0",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN202611022110079721d027",
+          "time": "2026-11-02 21:07:10",
+          "title": "美股盘前要闻一览：迈威尔拟以全股票交易收购Lumentum；马斯克称2029年太空算力将“碾压”地面；苹果财报凌晨来袭",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611022110079721d027&s=b",
+          "src": "财联社",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110220545098a5d7a3",
+          "time": "2026-11-02 20:52:16",
+          "title": "谷歌：太空数据中心成本是地面的100倍",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110220545098a5d7a3&s=b",
+          "src": "科创板日报",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110221532798a5ef7e",
+          "time": "2026-11-02 20:32:00",
+          "title": "富国集团维持谷歌-A买入评级，上调目标价至371美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110221532798a5ef7e&s=b",
+          "src": "富途资讯",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110220122094bcabb1",
+          "time": "2026-11-02 20:08:00",
+          "title": "1000万开发者，正在改写边缘云",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110220122094bcabb1&s=b",
+          "src": "边缘计算社区",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102192153a493b2d6",
+          "time": "2026-11-02 19:21:50",
+          "title": "信息技术行业：谷歌主业降速 指引27年CapEx显著增长 现金流承压",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102192153a493b2d6&s=b",
+          "src": "国泰海通证券股份有限公司",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102193139a493b691",
+          "time": "2026-11-02 19:21:22",
+          "title": "AI信仰迎来新考验，股价暴跌后Alphabet赴欧债市场融资",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102193139a493b691&s=b",
+          "src": "华尔街见闻",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102182236b675e55e",
+          "time": "2026-11-02 18:20:22",
+          "title": "土耳其对谷歌搜索AI功能启动调查",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102182236b675e55e&s=b",
+          "src": "IT时代网",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110218080397218a63",
+          "time": "2026-11-02 18:08:01",
+          "title": "AI周观察：OpenAI取消降额计划，谷歌Cloud保持增长但现金流压力较大",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110218080397218a63&s=b",
+          "src": "国金证券",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110217491997218235",
+          "time": "2026-11-02 17:36:32",
+          "title": "AI融资热潮带动外资日元债发行 Alphabet发行5765亿日元债券投向AI基建",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110217491997218235&s=b",
+          "src": "金吾财讯",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102172102a6e946dc",
+          "time": "2026-11-02 17:20:31",
+          "title": "谷歌：把计算硬件送入轨道的发射成本“极其高昂",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102172102a6e946dc&s=b",
+          "src": "财联社",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN202611021605149721548f",
+          "time": "2026-11-02 15:53:57",
+          "title": "谷歌和OpenAI，开始互卖对方的东西",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611021605149721548f&s=b",
+          "src": "未来芯领域",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110215331294bc385f",
+          "time": "2026-11-02 15:32:35",
+          "title": "Alphabet启动今年第二轮欧元债券发行",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110215331294bc385f&s=b",
+          "src": "格隆汇",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110214491794bc24d9",
+          "time": "2026-11-02 14:43:52",
+          "title": "云业务翻倍，谷歌为什么还暴跌近13%？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110214491794bc24d9&s=b",
+          "src": "卡西的硅基镜像",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102144652a4933e3d",
+          "time": "2026-11-02 14:43:00",
+          "title": "同样拥抱 AI，为什么Meta广告腾飞，谷歌搜索却承压？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102144652a4933e3d&s=b",
+          "src": "环球网",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102140754a493310d",
+          "time": "2026-11-02 13:45:22",
+          "title": "谷歌重夺大模型第一",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102140754a493310d&s=b",
+          "src": "电子工程专辑",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102135817b675779d",
+          "time": "2026-11-02 13:32:20",
+          "title": "市场对AI定价逻辑变了",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102135817b675779d&s=b",
+          "src": "中国企业家杂志",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110212271894bbf607",
+          "time": "2026-11-02 12:20:00",
+          "title": "谷歌TPU延一年：自家模型，跑到别人卡上",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110212271894bbf607&s=b",
+          "src": "数之涌现",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110211544594bbeaf5",
+          "time": "2026-11-02 11:53:36",
+          "title": "谷歌太空AI首测成功",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110211544594bbeaf5&s=b",
+          "src": "太空吧",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102115011b6754e73",
+          "time": "2026-11-02 11:47:47",
+          "title": "谷歌太空原型数据中心完成在轨 AI 测试，卫星 TPU 生成太空主题俳句",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102115011b6754e73&s=b",
+          "src": "DoNews",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110211140298a4f721",
+          "time": "2026-11-02 11:08:26",
+          "title": "谷歌150亿美元数据中心项目被叫停：法砍伐25万棵树，刑事调查启动",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110211140298a4f721&s=b",
+          "src": "储能与AIDC智算",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102104833a6e8b1cf",
+          "time": "2026-11-02 10:48:19",
+          "title": "大行评级｜花旗：降Alphabet目标价至375美元，整体不确定性上升",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102104833a6e8b1cf&s=b",
+          "src": "格隆汇",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN202611021022139720d4a4",
+          "time": "2026-11-02 10:19:04",
+          "title": "AI广告战开打：Meta狂飙，谷歌失血",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611021022139720d4a4&s=b",
+          "src": "东针商略",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN202611021113149720e9d7",
+          "time": "2026-11-02 09:40:00",
+          "title": "谷歌公布Googlebook多形态笔记本计划 宏碁翻转本已上市 联想可拆卸键盘版即将推出",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611021113149720e9d7&s=b",
+          "src": "太平洋科技",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110209172898a4c203",
+          "time": "2026-11-02 09:11:17",
+          "title": "谷歌的AI生意越做越大，华尔街为什么不买帐",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110209172898a4c203&s=b",
+          "src": "钛媒体APP",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102091146a6e88634",
+          "time": "2026-11-02 09:11:00",
+          "title": "骤降83%！微软、谷歌、亚马逊、Meta、甲骨文，曝出大消息",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102091146a6e88634&s=b",
+          "src": "证券时报网",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102085929a6e881e8",
+          "time": "2026-11-02 08:59:27",
+          "title": "OpenAI、谷歌、微软和 Anthropic 联手推行 AI 数据抓取退出标准",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102085929a6e881e8&s=b",
+          "src": "JQman科技网",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102093207a6e88e25",
+          "time": "2026-11-02 08:52:00",
+          "title": "科技股蒸发 6000 亿：AI 泡沫破裂与债务危机",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102093207a6e88e25&s=b",
+          "src": "21世纪经济报道",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN202611020851069720ab79",
+          "time": "2026-11-02 08:47:00",
+          "title": "原油、AI与债券：过去一个月市场交易格局彻底生变？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611020851069720ab79&s=b",
+          "src": "财联社",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN202611020905269720b02c",
+          "time": "2026-11-02 08:40:00",
+          "title": "【国际AI】英伟达 129 亿美元收 Hugging Face，谷歌一周连发两款前沿模型｜11-02",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611020905269720b02c&s=b",
+          "src": "北栾AIGC",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102082559a6e8784a",
+          "time": "2026-11-02 08:00:00",
+          "title": "谷歌加码医疗AI！新加坡研究中心即将落地，临床诊疗和疾病预防迎来新工具",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102082559a6e8784a&s=b",
+          "src": "Med AI 观察",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102073248a492a358",
+          "time": "2026-11-02 07:27:30",
+          "title": "中信建投",
+          "url": "聚焦现金流与投入回报质量",
+          "src": "0",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102072137a6e86667",
+          "time": "2026-11-02 07:19:00",
+          "title": "Meta、谷歌、英特尔增发认购者集体浮亏，标普下调Meta评级展望",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102072137a6e86667&s=b",
+          "src": "财研深论",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261102000055a6e8140b",
+          "time": "2026-11-02 00:00:43",
+          "title": "谷歌-A2026财年第三财季实现净利润264.68亿美元，同比减少24.33%",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102000055a6e8140b&s=b",
+          "src": "市场透视",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110202072997205679",
+          "time": "2026-11-01 20:18:00",
+          "title": "谷歌Gemini 4 上新，跑分重回“世界第一”，马斯克都来点赞了",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110202072997205679&s=b",
+          "src": "太平洋科技",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110120195698a41cde",
+          "time": "2026-11-01 20:18:00",
+          "title": "美股科技巨头加码“烧钱”！AI支出承诺超3万亿美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110120195698a41cde&s=b",
+          "src": "智通财经",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110120063198a41a10",
+          "time": "2026-11-01 20:06:28",
+          "title": "机器人行业研究：谷歌升级Genie 4世界模型，智元大会发布新一代G2 Max",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110120063198a41a10&s=b",
+          "src": "国金证券",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110120053898a419dc",
+          "time": "2026-11-01 20:00:00",
+          "title": "花掉的钱超过赚回的现金，微软谷歌亚马逊怎么解？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110120053898a419dc&s=b",
+          "src": "科技喵新",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110119521097200989",
+          "time": "2026-11-01 19:43:36",
+          "title": "地面装不下AI了：马斯克当“包租公”单季爆赚44亿，谷歌为什么被逼上太空？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110119521097200989&s=b",
+          "src": "赛博猫看科技",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN20261101180030a6e7c48f",
+          "time": "2026-11-01 16:50:37",
+          "title": "Alphabet：2026年第三季度营收1112亿美元，股价下跌13%",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261101180030a6e7c48f&s=b",
+          "src": "199IT",
+          "symbol": "usGOOGL"
+        },
+        {
+          "id": "nesSN2026110116244894bac809",
+          "time": "2026-11-01 16:21:30",
+          "title": "3万亿美元之后：AI基建从规模竞赛转入回报竞赛",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110116244894bac809&s=b",
+          "src": "通信世界",
+          "symbol": "usGOOGL"
+        }
+      ]
+    },
+    "usNVDA": {
+      "name": "英伟达",
+      "news": [
+        {
+          "id": "nesSN20261103084456b676da58",
+          "time": "2026-11-03 08:40:07",
+          "title": "物理AI抢算力，英伟达Rubin算力没缩水，为什么带宽先降了？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261103084456b676da58&s=b",
+          "src": "芝能汽车",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110307220897227155",
+          "time": "2026-11-03 07:13:16",
+          "title": "迈威尔千亿美元“鲸吞”Lumentum背后：激光器市场“极度紧张”",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110307220897227155&s=b",
+          "src": "智通财经",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261103070854a6ea363e",
+          "time": "2026-11-03 07:00:00",
+          "title": "英伟达新卡一卡难求，国产芯片悄悄补位",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261103070854a6ea363e&s=b",
+          "src": "脑机派对",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110307055594bd5cc3",
+          "time": "2026-11-03 07:00:00",
+          "title": "NVIDIA NVL72——三代架构的液冷演进",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110307055594bd5cc3&s=b",
+          "src": "智启云圈",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261103080331a6ea45d8",
+          "time": "2026-11-03 05:30:00",
+          "title": "道指收涨0.41%，纳指跌1.07%，标普500跌0.51%。成交额居前个股中，美光科技跌5.78%，英伟达跌1.26%，苹果跌1.83%，微软跌2.83%。",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261103080331a6ea45d8&s=b",
+          "src": "快讯",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261103043206a4945128",
+          "time": "2026-11-03 04:29:05",
+          "title": "华硕子公司展示液冷英伟达服务器",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261103043206a4945128&s=b",
+          "src": "IT时代网",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261103015857a6e9f26a",
+          "time": "2026-11-03 01:54:04",
+          "title": "英伟达Brev安全事件暴露SSH密钥已轮换",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261103015857a6e9f26a&s=b",
+          "src": "IT时代网",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261103011418b6766ffc",
+          "time": "2026-11-03 01:08:48",
+          "title": "CrowdStrike 与戴尔合作提供 AI 安全方案",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261103011418b6766ffc&s=b",
+          "src": "链捕手",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110223224994bcf0a8",
+          "time": "2026-11-02 23:18:49",
+          "title": "美国芯片股上涨 英伟达涨1.5%",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110223224994bcf0a8&s=b",
+          "src": "爱集微",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102230631a49404b9",
+          "time": "2026-11-02 23:04:09",
+          "title": "Marvell终于吞下Lumentum，千亿美金重磅收购落槌！AI光通信超级巨头诞生",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102230631a49404b9&s=b",
+          "src": "DeepTech深科技",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110223060198a60810",
+          "time": "2026-11-02 22:30:49",
+          "title": "Marvell 1150亿美元收购Lumentum，电芯片+光器件寡头的整合！",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110223060198a60810&s=b",
+          "src": "科技产业微观察",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110223002594bcea36",
+          "time": "2026-11-02 22:20:01",
+          "title": "算力租赁+AI服务器+机器人+英伟达！公司已拿下英伟达NCP认证，前瞻布局物理AI与机器人算力，控股股东拟大手笔增持",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110223002594bcea36&s=b",
+          "src": "第一财经",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102222656b6764092",
+          "time": "2026-11-02 22:16:19",
+          "title": "游戏玩家已无VIP待遇：仅占NVIDIA营7% 10年间暴跌10倍",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102222656b6764092&s=b",
+          "src": "快科技",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102220426a493f01f",
+          "time": "2026-11-02 21:46:41",
+          "title": "从英伟达到 Pika，硅谷巨头为何“反向借力”这个国产模型？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102220426a493f01f&s=b",
+          "src": "AI前线",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN202611022129549721d8c5",
+          "time": "2026-11-02 20:22:49",
+          "title": "车企终于不用再吃英伟达的苦了",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611022129549721d8c5&s=b",
+          "src": "白鲸实验室",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110220120494bcab94",
+          "time": "2026-11-02 20:09:13",
+          "title": "Melius Research：将英伟达目标价下调至315美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110220120494bcab94&s=b",
+          "src": "和讯网",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102195251a6e980ff",
+          "time": "2026-11-02 19:49:17",
+          "title": "英伟达Rubin量产版HBM4带宽下调至19.2TB/s",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102195251a6e980ff&s=b",
+          "src": "IT时代网",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102194919a6e97fb1",
+          "time": "2026-11-02 19:35:00",
+          "title": "为什么英伟达要把光纤直接“种”进 GPU 里？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102194919a6e97fb1&s=b",
+          "src": "半导体产业研究",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110219443698a5bdba",
+          "time": "2026-11-02 19:19:18",
+          "title": "英伟达OOI来了！将彻底颠覆CPO？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110219443698a5bdba&s=b",
+          "src": "芯势观察",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102182632a6e96193",
+          "time": "2026-11-02 18:03:35",
+          "title": "当“卖铲人”买下开发者“广场”，英伟达最大收购面临监管大考",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102182632a6e96193&s=b",
+          "src": "科技实话",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN202611021831029721945e",
+          "time": "2026-11-02 18:01:18",
+          "title": "观察｜从电网到GPU：AI供电的芯片之争！",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611021831029721945e&s=b",
+          "src": "碳化硅芯观察",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102183016b675e85a",
+          "time": "2026-11-02 18:00:00",
+          "title": "40亿抢20亿份额！中移动领投，绍兴独角兽芯联动力进军AI供电，剑指英伟达800V生态",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102183016b675e85a&s=b",
+          "src": "VCA创投社",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN202611022005479721b77a",
+          "time": "2026-11-02 17:27:05",
+          "title": "51Sim 加入 NVIDIA Halos SAFE 生态，助力辅助驾驶安全验证",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611022005479721b77a&s=b",
+          "src": "51WORLD",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102173331a4938723",
+          "time": "2026-11-02 17:23:42",
+          "title": "美股半导体，盘前爆发！",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102173331a4938723&s=b",
+          "src": "科创板日报",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102170301a6e93fc4",
+          "time": "2026-11-02 17:01:00",
+          "title": "iPhone托起王座：英伟达市值跌破5万亿，苹果反超成为全球市值第一",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102170301a6e93fc4&s=b",
+          "src": "OFweek 光通讯网",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102180026972186ca",
+          "time": "2026-11-02 17:00:00",
+          "title": "“芯”闻快讯｜屹唐股份北京扩产、京元电子德州布局，AI芯片产业链加速重构",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102180026972186ca&s=b",
+          "src": "电子半导体科创社",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102160254972153a1",
+          "time": "2026-11-02 15:58:45",
+          "title": "物理AI抢算力，英伟达Rubin算力没缩水，为什么带宽先降了？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102160254972153a1&s=b",
+          "src": "芝能智芯",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110215361994bc39dd",
+          "time": "2026-11-02 15:33:26",
+          "title": "英伟达RTX 5080 24GB版最快12月上市 或接替国内高端型号",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110215361994bc39dd&s=b",
+          "src": "手机中国",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102151345b6759237",
+          "time": "2026-11-02 15:03:00",
+          "title": "投入最狠、收成平淡，亚马逊已成英伟达 “打工仔”？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102151345b6759237&s=b",
+          "src": "OFweek 光通讯网",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102142730a6e8fdb1",
+          "time": "2026-11-02 14:27:30",
+          "title": "Oracle扩大OCI AI基础设施：引入NVIDIA Vera Rubin、Vera CPU与Google TPU",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102142730a6e8fdb1&s=b",
+          "src": "TechWeb.com.cn",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102141706a6e8fa0f",
+          "time": "2026-11-02 14:16:33",
+          "title": "英伟达把光引擎搬上硅中介层：方向很确定，节奏很诚实",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102141706a6e8fa0f&s=b",
+          "src": "Ofweek维科网",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110214153494bc196f",
+          "time": "2026-11-02 14:10:00",
+          "title": "Agent改写算力账本, CPU不再是AI服务器的配角？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110214153494bc196f&s=b",
+          "src": "硅碳变量",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110212504894bbfcf5",
+          "time": "2026-11-02 12:44:00",
+          "title": "CPO，英伟达再向前一步",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110212504894bbfcf5&s=b",
+          "src": "全球半导体观察",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102134623b6757326",
+          "time": "2026-11-02 12:32:00",
+          "title": "光引擎直接搬进GPU！英伟达OOI原型亮相，CPO的“终极形态”露出了獠牙",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102134623b6757326&s=b",
+          "src": "AI真知",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN202611021230349721059f",
+          "time": "2026-11-02 12:28:05",
+          "title": "英伟达AI Day首尔2026将于11月9日召开 三星/海力士参与",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611021230349721059f&s=b",
+          "src": "手机中国",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102115748a4930709",
+          "time": "2026-11-02 11:48:52",
+          "title": "英伟达RTX 5080 24G提前引入中国，售价恐破3万元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102115748a4930709&s=b",
+          "src": "半导纵横",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102114230a6e8c844",
+          "time": "2026-11-02 11:32:00",
+          "title": "红杉合伙人 Shaun Maguire：SpaceX 处在英伟达式营收爆发前夜，市场严重低估",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102114230a6e8c844&s=b",
+          "src": "富途牛牛",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110213223397211523",
+          "time": "2026-11-02 11:30:00",
+          "title": "RTX 5080 24GB 赶不上 1 月：设计套件还没交到 AIC 手里",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110213223397211523&s=b",
+          "src": "IT168",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN202611021117589720ebf6",
+          "time": "2026-11-02 11:17:48",
+          "title": "英伟达展示OOI共封装光学技术，关注云计算50ETF东方红",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611021117589720ebf6&s=b",
+          "src": "云掌财经",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110211172194bbdc4e",
+          "time": "2026-11-02 11:16:00",
+          "title": "NVIDIA 与 Oracle 深化合作，扩展 NVIDIA Vera Rubin 至多吉瓦规模并将 NVIDIA Vera CPU 引入 Oracle Cloud Infrastructure",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110211172194bbdc4e&s=b",
+          "src": "CBISMB",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN202611021054459720e1ef",
+          "time": "2026-11-02 10:51:33",
+          "title": "990亿美元的投资组合浮出水面了！黄仁勋又投了一家韩国公司，英伟达野心越来越大，这算不算垄断？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611021054459720e1ef&s=b",
+          "src": "智能商业论",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110210492894bbd0f2",
+          "time": "2026-11-02 10:48:00",
+          "title": "69亿美元押注Mellanox，英伟达如何长成网络巨头",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110210492894bbd0f2&s=b",
+          "src": "CBISMB",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102104751a6e8b196",
+          "time": "2026-11-02 10:38:18",
+          "title": "CPO概念股，涨停",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102104751a6e8b196&s=b",
+          "src": "财经",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110210473894bbd037",
+          "time": "2026-11-02 10:24:53",
+          "title": "算力链利益重新分配，谁从英伟达的货架上分走蛋糕？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110210473894bbd037&s=b",
+          "src": "华夏ETF",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110210104998a4dd02",
+          "time": "2026-11-02 10:05:37",
+          "title": "英伟达向韩国互联网巨头 Naver 投资 10 亿美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110210104998a4dd02&s=b",
+          "src": "DoNews",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102100230a492d860",
+          "time": "2026-11-02 09:52:17",
+          "title": "光通信板块走强 长飞光纤光缆涨7.85% 英伟达公布下一代CPO技术OOI且已拿到原型样品",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102100230a492d860&s=b",
+          "src": "金吾财讯",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102090839a492bf21",
+          "time": "2026-11-02 09:07:20",
+          "title": "《纽约时报》炒作“中国女间谍”接近黄仁勋：外交部驳斥，英伟达澄清",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102090839a492bf21&s=b",
+          "src": "电子工程专辑",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN20261102092717a492c617",
+          "time": "2026-11-02 09:01:14",
+          "title": "英伟达开源H3视频增强：2K模型冲4K，剪辑团队值不值得本地部署",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102092717a492c617&s=b",
+          "src": "涌现坐标",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN2026110209290198a4c69e",
+          "time": "2026-11-02 09:00:00",
+          "title": "英伟达的光模块，改成一整片印出来",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110209290198a4c69e&s=b",
+          "src": "寻隙",
+          "symbol": "usNVDA"
+        },
+        {
+          "id": "nesSN202611020852019720abce",
+          "time": "2026-11-02 08:40:17",
+          "title": "美股AI股十月蒸发5万亿美元 中期选举后“黄金窗口期”能否重现？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611020852019720abce&s=b",
+          "src": "智通财经",
+          "symbol": "usNVDA"
+        }
+      ]
+    },
+    "usDELL": {
+      "name": "戴尔",
+      "news": [
+        {
+          "id": "nesSN20261103014743b6767751",
+          "time": "2026-11-03 01:06:53",
+          "title": "快讯",
+          "url": "CrowdStrike与戴尔的戴尔AI工厂提供集成AI安全方案。",
+          "src": "0",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261102223642a493fae8",
+          "time": "2026-11-02 22:36:42",
+          "title": "戴尔科技盘中异动 早盘股价大跌3.01%",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102223642a493fae8&s=b",
+          "src": "市场透视",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN2026110222371394bce249",
+          "time": "2026-11-02 22:36:37",
+          "title": "戴尔科技创60日新低，PC需求降25%DRAM涨价8倍承压",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110222371394bce249&s=b",
+          "src": "智选洞察",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN202611021913419721a4cf",
+          "time": "2026-11-02 17:31:00",
+          "title": "电子信息行业动态",
+          "url": "戴尔、惠普、华硕正考虑将部分PC产能迁回中国",
+          "src": "0",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261101002121b6737337",
+          "time": "2026-11-01 00:11:07",
+          "title": "OpenAI奥特曼：你电脑里的内存条，95%的时间都被浪费了，还不如用于发展AI",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261101002121b6737337&s=b",
+          "src": "每日经济新闻",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN2026103109320698a25310",
+          "time": "2026-10-31 09:32:02",
+          "title": "戴尔科技10月30日成交额为44.60亿美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103109320698a25310&s=b",
+          "src": "市场透视",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261030231357b6720bf6",
+          "time": "2026-10-30 23:10:00",
+          "title": "深夜 美科技股 集体重挫！",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030231357b6720bf6&s=b",
+          "src": "证券时报",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261030222650b671fce5",
+          "time": "2026-10-30 22:20:20",
+          "title": "计算机硬件股普跌 惠普跌9.00%、戴尔科技跌8.56%",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030222650b671fce5&s=b",
+          "src": "金吾财讯",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN2026103021351394b87793",
+          "time": "2026-10-30 21:30:50",
+          "title": "美股低开：纳指跌超2% 英特尔跌超25%",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103021351394b87793&s=b",
+          "src": "蓝鲸财经",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261030213103a48f97fa",
+          "time": "2026-10-30 21:30:00",
+          "title": "戴尔科技跌12%，AI服务器订单难交付内存短缺",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030213103a48f97fa&s=b",
+          "src": "智选洞察",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN2026103020073298a17082",
+          "time": "2026-10-30 19:32:50",
+          "title": "美国服务器制造商股价盘前继续下跌，戴尔下跌11.8%，惠普下跌8%，超微电脑下跌6%",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103020073298a17082&s=b",
+          "src": "财联社",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261030142913971cc9d8",
+          "time": "2026-10-30 14:21:00",
+          "title": "NVIDIA推出DSX POD AI工厂参考设计",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030142913971cc9d8&s=b",
+          "src": "NVIDIA英伟达",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN2026103010061394b758c2",
+          "time": "2026-10-30 09:33:19",
+          "title": "戴尔科技10月29日成交额为16.34亿美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103010061394b758c2&s=b",
+          "src": "市场透视",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261029100652a48c84b8",
+          "time": "2026-10-29 09:33:22",
+          "title": "戴尔科技10月28日成交额为20.15亿美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261029100652a48c84b8&s=b",
+          "src": "市场透视",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261029201526954ef493",
+          "time": "2026-10-29 09:05:00",
+          "title": "戴尔蒙特将于2026年11月10日除权除息，1股派股息0.3USD",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261029201526954ef493&s=b",
+          "src": "富途资讯",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261028111623b66d038e",
+          "time": "2026-10-28 11:16:17",
+          "title": "AI芯片紧缺推高PC成本，惠普、戴尔、华硕加速产能回流中国，立讯PC联盟等新兴代工厂迎来订单潮",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261028111623b66d038e&s=b",
+          "src": "SmartHey",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261028100615989c93b3",
+          "time": "2026-10-28 09:33:15",
+          "title": "戴尔科技10月27日成交额为31.91亿美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261028100615989c93b3&s=b",
+          "src": "市场透视",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261028082937954be04c",
+          "time": "2026-10-28 08:29:34",
+          "title": "2026年OLED显示器面板全球出货量预计增长79%",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261028082937954be04c&s=b",
+          "src": "中国产业经济信息网",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261027190225b66bcd01",
+          "time": "2026-10-27 18:59:01",
+          "title": "惠普、戴尔担心 2027 年电路板供货，亚马逊入股金像电子",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261027190225b66bcd01&s=b",
+          "src": "链捕手",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN2026102712095397af6020",
+          "time": "2026-10-27 11:38:38",
+          "title": "A股千元股集体承压！联讯仪器险守千元关口，戴尔预警存储紧缺加剧",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026102712095397af6020&s=b",
+          "src": "财闻",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261027132346a6dec323",
+          "time": "2026-10-27 11:29:06",
+          "title": "戴尔：据我观察，明年存储情况只会更糟，或许2029年会好一些",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261027132346a6dec323&s=b",
+          "src": "格隆汇",
+          "symbol": "usDELL"
+        },
+        {
+          "id": "nesSN20261027100544954a22ed",
+          "time": "2026-10-27 09:32:18",
+          "title": "戴尔科技10月26日成交额为22.34亿美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261027100544954a22ed&s=b",
+          "src": "市场透视",
+          "symbol": "usDELL"
+        }
+      ]
+    },
+    "hk09992": {
+      "name": "泡泡玛特",
+      "news": [
+        {
+          "id": "nesSN20261103070908a4947450",
+          "time": "2026-11-03 07:04:30",
+          "title": "就算有了“中国巴菲特”背书，面对泡泡马特，我还是看不懂",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261103070908a4947450&s=b",
+          "src": "基本面力场",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026110307090098a67a07",
+          "time": "2026-11-03 07:00:00",
+          "title": "48元的LABUBU蛋糕，测的是泡泡玛特挤掉投机水分后还剩多少真实需求",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110307090098a67a07&s=b",
+          "src": "中食头条",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261103045853a6ea17a5",
+          "time": "2026-11-03 04:50:53",
+          "title": "泡泡玛特国际集团有限公司耗资4890.25万港元回购股份",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261103045853a6ea17a5&s=b",
+          "src": "金吾财讯",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026110221352798a5e89d",
+          "time": "2026-11-02 21:32:19",
+          "title": "J.P. Morgan拟发行1亿份泡泡玛特认沽权证 行使价117.77港元拟11月4日上市",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110221352798a5e89d&s=b",
+          "src": "财闻",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026110221302594bcc9c3",
+          "time": "2026-11-02 19:53:59",
+          "title": "三季度业绩腰斩，泡泡玛特进入阵痛调整期",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110221302594bcc9c3&s=b",
+          "src": "财经网科技",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261102174757b675d642",
+          "time": "2026-11-02 17:46:53",
+          "title": "Q3业绩腰斩，对泡泡玛特不是坏事",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102174757b675d642&s=b",
+          "src": "速途网",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026110217592194bc77d5",
+          "time": "2026-11-02 17:32:30",
+          "title": "泡泡玛特甜品店“北京首店”开业！有小家电超2500元，网友称“颜值高价也高”… 门店：小程序筹备中",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110217592194bc77d5&s=b",
+          "src": "北京商报",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261102172314972177b1",
+          "time": "2026-11-02 17:04:10",
+          "title": "押中泡泡玛特的黑蚁资本，能给野人先生带来“新剧本”吗？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102172314972177b1&s=b",
+          "src": "趣解商业",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261102163629a4936ff7",
+          "time": "2026-11-02 16:30:46",
+          "title": "每日卖空追踪",
+          "url": "泡泡玛特 11月02日卖空量成交142.78万股，卖空比例为17.49%",
+          "src": "0",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026110216224294bc4f50",
+          "time": "2026-11-02 16:15:10",
+          "title": "泡泡玛特11月02日获主力加仓2136.4万元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110216224294bc4f50&s=b",
+          "src": "市场透视",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026110215184094bc30c2",
+          "time": "2026-11-02 15:16:07",
+          "title": "《2026胡润U40中国创业先锋》榜单揭晓 合肥两位青年才俊登榜",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110215184094bc30c2&s=b",
+          "src": "大皖新闻",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN202611021121469720ed73",
+          "time": "2026-11-02 11:17:09",
+          "title": "泡泡玛特的“调整年”：LABUBU退潮之后，重新校准增长预期",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611021121469720ed73&s=b",
+          "src": "新刊财经",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261102103212b6752e29",
+          "time": "2026-11-02 10:25:34",
+          "title": "泡泡玛特“腰斩”，情绪消费崩了？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102103212b6752e29&s=b",
+          "src": "蓝鲸新闻",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261102102621a492e331",
+          "time": "2026-11-02 10:11:15",
+          "title": "泡泡玛特Q3业绩会：消失的文德一与“矫枉必须过正”的司德",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102102621a492e331&s=b",
+          "src": "边学堂",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN202611021004009720cbf8",
+          "time": "2026-11-02 10:04:00",
+          "title": "泡泡玛特盘中异动 大幅上涨3.11%",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611021004009720cbf8&s=b",
+          "src": "市场透视",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026110210130598a4de49",
+          "time": "2026-11-02 10:02:25",
+          "title": "泡泡玛特不是段永平的可口可乐",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110210130598a4de49&s=b",
+          "src": "蓝鲸财经",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261102095453b6751d90",
+          "time": "2026-11-02 09:46:00",
+          "title": "泡泡玛特三季度“跌惨了”！段永平说还会买",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102095453b6751d90&s=b",
+          "src": "Ofweek光电信息网",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026110209433694bbb2ba",
+          "time": "2026-11-02 09:30:34",
+          "title": "泡泡玛特10月30日遭南向资金减持654.82万股",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110209433694bbb2ba&s=b",
+          "src": "市场透视",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261102085150a492b9a8",
+          "time": "2026-11-02 08:42:28",
+          "title": "补贴大退潮的时代来了",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102085150a492b9a8&s=b",
+          "src": "投资界",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026110208031994bb8f10",
+          "time": "2026-11-02 07:57:11",
+          "title": "国海研究",
+          "url": "中期选举将至美股后市如何演绎/海风项目推进信号密集—晨听海之声1102",
+          "src": "0",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261102073923b674edcf",
+          "time": "2026-11-02 07:30:00",
+          "title": "2026年最该警惕的一句话：IP授权是“长效变现”",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102073923b674edcf&s=b",
+          "src": "IP产业圈",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261102211135b676240e",
+          "time": "2026-11-02 00:00:00",
+          "title": "泡泡玛特：高基数下经营短期承压 海外市场有望逐步企稳",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102211135b676240e&s=b",
+          "src": "方正证券",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026110215110797213b52",
+          "time": "2026-11-02 00:00:00",
+          "title": "泡泡玛特(9992.HK)2026年三季报点评：IP结构逐步优化 会员粘性增强",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110215110797213b52&s=b",
+          "src": "国泰海通证券",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261101180505b6744830",
+          "time": "2026-11-01 18:00:00",
+          "title": "忽然一周",
+          "url": "泡泡玛特三季度电话会高管说法来了；三丽鸥致歉；美泰开启营销新玩法；实丰文化发布AI品牌Rootix及桌面AI硬件",
+          "src": "0",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261101133553a491c0ff",
+          "time": "2026-11-01 13:30:56",
+          "title": "沪上阿姨发布“全时茶咖食”战略；Labubu热度退潮影响泡泡玛特业绩；全球奢侈品高度依赖中国市场复苏……｜一周核心",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261101133553a491c0ff&s=b",
+          "src": "iBrandi品创",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026110111072194ba8067",
+          "time": "2026-11-01 11:06:00",
+          "title": "泡泡玛特为什么要开甜品店？｜商业快评",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110111072194ba8067&s=b",
+          "src": "封面新闻",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026110216461297216848",
+          "time": "2026-11-01 00:00:00",
+          "title": "轻工行业2026年三季报业绩综述：内需必选稳健避险 AI+出海高景气延续",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110216461297216848&s=b",
+          "src": "国金证券",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026110208554598a4bab4",
+          "time": "2026-11-01 00:00:00",
+          "title": "传媒行业周观察：Anthropic或于11月中上市 小程序短剧数据表现强劲",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110208554598a4bab4&s=b",
+          "src": "华创证券",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261102080043b674f32c",
+          "time": "2026-11-01 00:00:00",
+          "title": "互联网传媒行业周报：10月游戏版号下发 Anthropic发布招股说明书",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102080043b674f32c&s=b",
+          "src": "广发证券",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261101163645b674341a",
+          "time": "2026-11-01 00:00:00",
+          "title": "传媒互联网行业周报：波动中关注AI产业落地方向 包括AI影视和互动影游",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261101163645b674341a&s=b",
+          "src": "华源证券",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261101004354971f1c6f",
+          "time": "2026-10-31 22:30:00",
+          "title": "体验经济行业深度：万亿市场规模、产业链全景拆解及核心标的梳理",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261101004354971f1c6f&s=b",
+          "src": "报告派",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026103117222298a2cad3",
+          "time": "2026-10-31 17:20:09",
+          "title": "泡泡玛特甜品品牌POP BAKERY北京首店在朝阳合生汇开业",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103117222298a2cad3&s=b",
+          "src": "北京商报",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261031161644971eaee2",
+          "time": "2026-10-31 16:14:24",
+          "title": "“中国购物开箱”走红，印证一个朴素的道理",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261031161644971eaee2&s=b",
+          "src": "北京日报客户端",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261031154313a6e67e82",
+          "time": "2026-10-31 14:08:21",
+          "title": "红杉中国布局AI毛绒陪伴，团队来自泡泡玛特与大疆；奥飞娱乐三季度净利润增长267.2％｜一周谷子潮玩大事件",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261031154313a6e67e82&s=b",
+          "src": "剁椒Spicy",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026103112094298a27e8d",
+          "time": "2026-10-31 12:00:00",
+          "title": "泡泡玛特单季收入腰斩，但全年利润只下调两成",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103112094298a27e8d&s=b",
+          "src": "全球投研精读笔记",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261031081439971e3067",
+          "time": "2026-10-31 08:11:00",
+          "title": "长城签约保加利亚组装、海尔1.5亿美元泰国建厂、泡泡玛特美洲收益下滑｜本周中企出海动态（10/25-10/31）",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261031081439971e3067&s=b",
+          "src": "EqualOcean出海全球化",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026103104074294b8e41f",
+          "time": "2026-10-31 04:04:12",
+          "title": "泡泡玛特终究要还网红流量的账",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103104074294b8e41f&s=b",
+          "src": "亿欧网",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261030232139b6720e26",
+          "time": "2026-10-30 23:19:13",
+          "title": "泡泡玛特MEGA ROYAL MOLLY推出首款琉璃作品琉光系列",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030232139b6720e26&s=b",
+          "src": "观点新媒体",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026103022004198a1a111",
+          "time": "2026-10-30 21:35:35",
+          "title": "泡泡玛特重回起跑线",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103022004198a1a111&s=b",
+          "src": "20社",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026103020285498a17a80",
+          "time": "2026-10-30 19:54:36",
+          "title": "全民过日子时代，泡泡玛特先被抛弃？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103020285498a17a80&s=b",
+          "src": "锌刻度Znkedu",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261030200751971d61b7",
+          "time": "2026-10-30 19:16:25",
+          "title": "一条由LABUBU拽动的业绩曲线：泡泡玛特复购率两连降后，三季度收益直接“腰斩”",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030200751971d61b7&s=b",
+          "src": "钛媒体APP",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261030205207971d7527",
+          "time": "2026-10-30 18:53:00",
+          "title": "泡泡玛特三季度线上腰斩，门店掉5%，“快钱”先跑了",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030205207971d7527&s=b",
+          "src": "中时财经",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026103016515594b7f91b",
+          "time": "2026-10-30 16:30:47",
+          "title": "每日卖空追踪",
+          "url": "泡泡玛特 10月30日卖空量成交149万股，卖空比例为11.97%",
+          "src": "0",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261030163345971cff15",
+          "time": "2026-10-30 16:15:16",
+          "title": "泡泡玛特10月30日获主力加仓8682.5万元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030163345971cff15&s=b",
+          "src": "市场透视",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026103016173898a1070c",
+          "time": "2026-10-30 16:05:22",
+          "title": "泡泡玛特业绩腰斩段永平仍表示“会再买一些”",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103016173898a1070c&s=b",
+          "src": "都市快报",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261030154942a48efdaa",
+          "time": "2026-10-30 15:39:00",
+          "title": "投机退潮，泡泡玛特收益高位速降",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030154942a48efdaa&s=b",
+          "src": "深圳商报·读创",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261030153304a6e4c4b8",
+          "time": "2026-10-30 15:26:33",
+          "title": "海通国际削泡泡玛特目标价18.7% 指去年高基数及海外线上流量回落拖累第三季收入",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030153304a6e4c4b8&s=b",
+          "src": "新浪财经",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN2026103014202298a0d49b",
+          "time": "2026-10-30 14:09:52",
+          "title": "别把LABUBU卖爆，算成文化出海",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103014202298a0d49b&s=b",
+          "src": "下海fallsea",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261030154310971ce8f8",
+          "time": "2026-10-30 12:49:05",
+          "title": "成人积木市场不再只有乐高 泡泡玛特、美泰相继入局，玩具巨头争夺“大孩子”",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030154310971ce8f8&s=b",
+          "src": "消费物语",
+          "symbol": "hk09992"
+        },
+        {
+          "id": "nesSN20261030134145b6711bd0",
+          "time": "2026-10-30 12:31:32",
+          "title": "泡泡玛特三季度“跌惨了”！段永平说还会买",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030134145b6711bd0&s=b",
+          "src": "金观社",
+          "symbol": "hk09992"
+        }
+      ]
+    },
+    "hk00700": {
+      "name": "腾讯",
+      "news": [
+        {
+          "id": "nesSN2026110308110097228042",
+          "time": "2026-11-03 08:16:21",
+          "title": "WorkBuddy的“渠道胜利”与AI时代的“房东困境”",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110308110097228042&s=b",
+          "src": "财狗商业评论",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261103075131b676ca52",
+          "time": "2026-11-03 08:16:08",
+          "title": "腾讯的AI回报，先让老生意多赚钱，旧市盈率要用新回报支撑",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261103075131b676ca52&s=b",
+          "src": "硅步run",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261102235244b6765a6f",
+          "time": "2026-11-02 23:49:32",
+          "title": "腾讯数字生态大会第二日，花旗：WorkBuddy撕开企业级AI的真正入口",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102235244b6765a6f&s=b",
+          "src": "智通财经",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN2026110218463297219a50",
+          "time": "2026-11-02 18:57:31",
+          "title": "2026Q3传媒持仓分析：腾讯控股仍为持仓产品数量最多个股",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110218463297219a50&s=b",
+          "src": "浙商证券",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261102171625a6e94510",
+          "time": "2026-11-02 17:15:46",
+          "title": "腾讯的硬件野心，藏在数字生态大会场外",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102171625a6e94510&s=b",
+          "src": "21世纪经济报道",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN202611021711359721731e",
+          "time": "2026-11-02 17:10:19",
+          "title": "腾讯把Agent送入企业生产场景",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611021711359721731e&s=b",
+          "src": "经济观察网",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN2026110217073998a57e63",
+          "time": "2026-11-02 16:49:44",
+          "title": "WorkBuddy站上C位，腾讯找到ToB的AI打法",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110217073998a57e63&s=b",
+          "src": "光锥智能",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN2026110216270397215f28",
+          "time": "2026-11-02 16:15:53",
+          "title": "腾讯控股11月02日获主力大幅加仓3.4亿元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110216270397215f28&s=b",
+          "src": "市场透视",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN2026110213493098a52b9b",
+          "time": "2026-11-02 13:47:12",
+          "title": "恒生科技指数上涨3%，腾讯控股涨超3%",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110213493098a52b9b&s=b",
+          "src": "财联社",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261102134617b675731f",
+          "time": "2026-11-02 13:43:00",
+          "title": "腾讯牵手Visa，跨境支付要变天？卖家别只看热闹",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102134617b675731f&s=b",
+          "src": "白鲸出海",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261102134227a6e8edf8",
+          "time": "2026-11-02 13:41:00",
+          "title": "不做硬件的腾讯，把Agent装进了别人的硬件里",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261102134227a6e8edf8&s=b",
+          "src": "21世纪经济报道",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN2026110213404497211b0a",
+          "time": "2026-11-02 13:36:00",
+          "title": "腾讯入股动漫制作研发商奇想文化",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110213404497211b0a&s=b",
+          "src": "财联社",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN202611020906259720b085",
+          "time": "2026-11-02 09:12:32",
+          "title": "腾讯又迈出关键一步！一个Buddy One，直接打通全生态",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN202611020906259720b085&s=b",
+          "src": "袋鼠帝AI客栈",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN2026110207100597208f19",
+          "time": "2026-11-02 07:00:00",
+          "title": "微信支付智慧经营机器人首次进店：支持迎宾、导购、点单等，基于腾讯混元打造",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026110207100597208f19&s=b",
+          "src": "机器人全球资讯",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261101192743b6745bfa",
+          "time": "2026-11-01 19:04:13",
+          "title": "腾讯内测“懂了鸭”大厂卷入AI教育混战",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261101192743b6745bfa&s=b",
+          "src": "GPLP",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261101091141a49187c1",
+          "time": "2026-11-01 09:00:00",
+          "title": "不再单打独斗，腾讯医疗AI“组团上岗”",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261101091141a49187c1&s=b",
+          "src": "深圳商报·读创",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261031132304b672e072",
+          "time": "2026-10-31 14:47:44",
+          "title": "WorkBuddy“入职”六成中国百强企业 智能体下一关是“高效能”",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261031132304b672e072&s=b",
+          "src": "财联社",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261031041710971df5b9",
+          "time": "2026-10-31 04:04:12",
+          "title": "没造车、不站前台，2000万辆之后腾讯凭什么拿下汽车AI的“两张船票”？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261031041710971df5b9&s=b",
+          "src": "亿欧网",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN2026103020440194b86191",
+          "time": "2026-10-30 23:27:59",
+          "title": "从互联网公司到AI科技公司 腾讯的再造之路刚刚开始",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103020440194b86191&s=b",
+          "src": "深流研究所",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN2026103021560298a19f19",
+          "time": "2026-10-30 23:26:44",
+          "title": "108部大剧铺开，腾讯视频“赌”一场长叙事回归",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103021560298a19f19&s=b",
+          "src": "文娱商业观察",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261030230737971daaf3",
+          "time": "2026-10-30 23:25:15",
+          "title": "WorkBuddy爆火后，我们对腾讯AI有了5个新判断",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030230737971daaf3&s=b",
+          "src": "新皮层NewNewThing",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261030162229b6715bf9",
+          "time": "2026-10-30 16:52:22",
+          "title": "让AI真正为企业干活，腾讯放大招了",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030162229b6715bf9&s=b",
+          "src": "华商韬略",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261030155938b67151a2",
+          "time": "2026-10-30 16:51:57",
+          "title": "腾讯发布《WorkBuddy企业版安全白皮书》，让Agent进入企业可控可溯可管",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030155938b67151a2&s=b",
+          "src": "腾讯云",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN2026103016381594b7f1db",
+          "time": "2026-10-30 16:15:33",
+          "title": "腾讯控股10月30日主力净流入9053.2万元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103016381594b7f1db&s=b",
+          "src": "市场透视",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261030132422971cb36b",
+          "time": "2026-10-30 13:24:19",
+          "title": "海南算力与腾讯云达成战略合作 将打造自贸港“AI+算力”一体化底座",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030132422971cb36b&s=b",
+          "src": "人民财讯",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261030131246a6e48ff1",
+          "time": "2026-10-30 13:03:46",
+          "title": "国金证券与腾讯云达成战略合作 拟成立AI联合实验室",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030131246a6e48ff1&s=b",
+          "src": "证券时报网",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261030113208a6e46c00",
+          "time": "2026-10-30 11:31:42",
+          "title": "腾讯元宝开放平台上线，美团、携程等品牌已接入",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030113208a6e46c00&s=b",
+          "src": "科创板日报",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261030112032971c8667",
+          "time": "2026-10-30 11:02:00",
+          "title": "腾讯文档升级发布AI原生编辑引擎：支持多人、多Agent同一份文档中协作",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030112032971c8667&s=b",
+          "src": "中国网科技",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261030110358a6e4613c",
+          "time": "2026-10-30 10:51:03",
+          "title": "中金公司：腾讯发布一体化办公套件Buddy One，维持“跑赢行业”评级",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030110358a6e4613c&s=b",
+          "src": "中金公司",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN2026103009502598a06e94",
+          "time": "2026-10-30 09:53:19",
+          "title": "腾讯云三位高管交底WorkBuddy：模型竞争、Agent安全与AI办公终局",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026103009502598a06e94&s=b",
+          "src": "智东西",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261030002005971bc681",
+          "time": "2026-10-30 07:39:30",
+          "title": "90亿次任务之后：腾讯把AI从聊天室，推向了企业生产线",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030002005971bc681&s=b",
+          "src": "勇砺商业评论",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261030072606a6e40d57",
+          "time": "2026-10-30 07:22:00",
+          "title": "腾讯最新发声！谈及WorkBuddy、腾讯云",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030072606a6e40d57&s=b",
+          "src": "券商中国",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261029222730954f2c45",
+          "time": "2026-10-29 22:45:27",
+          "title": "港股年内回购1257亿港元，腾讯、友邦等回购金额居前",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261029222730954f2c45&s=b",
+          "src": "科技江湖",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261030172117971d16b5",
+          "time": "2026-10-29 17:20:33",
+          "title": "腾讯云加速国际化增长，推进企业级AI落地并拓展全球合作",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030172117971d16b5&s=b",
+          "src": "腾讯",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261029150911b66f47df",
+          "time": "2026-10-29 15:57:29",
+          "title": "WorkBuddy已覆盖50%中国企业500强，企业版发布四大能力升级",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261029150911b66f47df&s=b",
+          "src": "财经涂鸦",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261029153003a6e2d288",
+          "time": "2026-10-29 15:56:54",
+          "title": "招商证券国际：腾讯推出BuddyOne跨应用会员巩固生态优势，维持为中国AI互联网行业首选",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261029153003a6e2d288&s=b",
+          "src": "格隆汇",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261029154800989f0585",
+          "time": "2026-10-29 15:47:00",
+          "title": "腾讯汤道生：WorkBuddy将开放架构 支持企业自建Agent网络",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261029154800989f0585&s=b",
+          "src": "上海证券报·中国证券网",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261029154753a6e2dab5",
+          "time": "2026-10-29 15:46:50",
+          "title": "腾讯控股创52周新低，AI新品发布难挡板块回调拖累",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261029154753a6e2dab5&s=b",
+          "src": "智选洞察",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261029103413a48c9092",
+          "time": "2026-10-29 10:30:36",
+          "title": "腾讯云，加快全球数据中心建设",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261029103413a48c9092&s=b",
+          "src": "科创板日报",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261029095305971a7093",
+          "time": "2026-10-29 10:23:14",
+          "title": "腾讯汤道生：AI智能体重塑企业生产力 日均Token调用量已超500万亿",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261029095305971a7093&s=b",
+          "src": "人民财讯",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261029102138971a7e73",
+          "time": "2026-10-29 10:06:55",
+          "title": "腾讯与Visa宣布战略合作，携手升级腾讯生态全球支付和商务体验",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261029102138971a7e73&s=b",
+          "src": "腾讯金融科技",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261029095724a6e258ad",
+          "time": "2026-10-29 09:56:00",
+          "title": "腾讯混元Hy4 、Hy4 flash即将发布，首次引入视觉理解能力",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261029095724a6e258ad&s=b",
+          "src": "新浪科技",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261029095056971a6f78",
+          "time": "2026-10-29 09:48:00",
+          "title": "腾讯WorkBuddy开放平台正在内测“收入变现”功能",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261029095056971a6f78&s=b",
+          "src": "大数跨境",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261028153615a48b03ad",
+          "time": "2026-10-28 18:03:49",
+          "title": "腾讯AI的压力来到微信小微",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261028153615a48b03ad&s=b",
+          "src": "海克财经",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261028123426b66d1f84",
+          "time": "2026-10-28 12:32:32",
+          "title": "腾讯 WorkBuddy 手机远程控制电脑功能上线，实时显示屏幕内容",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261028123426b66d1f84&s=b",
+          "src": "IT之家",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261028102835b66cf041",
+          "time": "2026-10-28 10:22:45",
+          "title": "腾讯、字节、快手同时提速，互动内容离爆发还有多远？",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261028102835b66cf041&s=b",
+          "src": "DoNews",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261028092349989c7e20",
+          "time": "2026-10-28 09:26:43",
+          "title": "资管巨头Causeway：别再追高AI赢家，腾讯有望复制AI巨头之路",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261028092349989c7e20&s=b",
+          "src": "智通财经",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN20261028063522954bbcff",
+          "time": "2026-10-28 08:18:05",
+          "title": "东方红资产管理苗宇旗下基金三季报最新持仓，重仓腾讯控股",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261028063522954bbcff&s=b",
+          "src": "证券之星",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN2026102718372597aff5c3",
+          "time": "2026-10-28 08:17:55",
+          "title": "凶猛的短剧和AI，是时候重估腾讯了",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026102718372597aff5c3&s=b",
+          "src": "尺度商业",
+          "symbol": "hk00700"
+        },
+        {
+          "id": "nesSN2026102718331497aff3ac",
+          "time": "2026-10-27 21:29:57",
+          "title": "雄安新区携手腾讯共建AIGC漫剧产业基地",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026102718331497aff3ac&s=b",
+          "src": "中国雄安官网",
+          "symbol": "hk00700"
+        }
+      ]
+    },
+    "usBRK.B": {
+      "name": "伯克希尔",
+      "news": [
+        {
+          "id": "nesSN20261031092037b6729dd8",
+          "time": "2026-10-31 09:20:31",
+          "title": "伯克希尔B10月30日成交额为24.47亿美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261031092037b6729dd8&s=b",
+          "src": "市场透视",
+          "symbol": "usBRK.B"
+        },
+        {
+          "id": "nesSN20261030092125a48e622d",
+          "time": "2026-10-30 09:21:22",
+          "title": "伯克希尔B10月29日成交额为22.64亿美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261030092125a48e622d&s=b",
+          "src": "市场透视",
+          "symbol": "usBRK.B"
+        },
+        {
+          "id": "nesSN20261029092122989e7052",
+          "time": "2026-10-29 09:21:18",
+          "title": "伯克希尔B10月28日成交额为17.84亿美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261029092122989e7052&s=b",
+          "src": "市场透视",
+          "symbol": "usBRK.B"
+        },
+        {
+          "id": "nesSN20261028092109a48a727e",
+          "time": "2026-10-28 09:21:08",
+          "title": "伯克希尔B10月27日成交额为16.77亿美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN20261028092109a48a727e&s=b",
+          "src": "市场透视",
+          "symbol": "usBRK.B"
+        },
+        {
+          "id": "nesSN2026102709210397af1b25",
+          "time": "2026-10-27 09:20:57",
+          "title": "伯克希尔B10月26日成交额为25.71亿美元",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html#/index?id=nesSN2026102709210397af1b25&s=b",
+          "src": "市场透视",
+          "symbol": "usBRK.B"
+        }
+      ]
+    }
+  }
+}
